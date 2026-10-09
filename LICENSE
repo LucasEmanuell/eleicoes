@@ -1,6 +1,9 @@
 MIT License
 
-Copyright (c) 2026 Lucas 
+Copyright (c) 2026 Leonardo Rocha (pipeline de dados original: fetch_live.py,
+prepare.py, build_demo.py, publish_loop.sh, abroad_cities.csv — adaptado a
+partir de https://github.com/lsampaiorocha/brazil-votes-2026)
+Copyright (c) 2026 Lucas Emanuell (front-end novo e adaptações)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
