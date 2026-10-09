@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apuração 2026 — 2º turno</title>
+<meta name="description" content="Acompanhamento não-oficial do 2º turno da eleição presidencial de 2026, com dados públicos do TSE.">
+<style>
+:root {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --surface-2: #232322;
+  --page: #0d0d0d;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --ink-muted: #898781;
+  --rule: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255,255,255,0.10);
+  --c13: #e66767;   /* Lula / PT */
+  --c13-dim: rgba(230,103,103,0.16);
+  --c22: #3987e5;   /* Flávio Bolsonaro / PL */
+  --c22-dim: rgba(57,135,229,0.16);
+  --good: #0ca30c;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--page); color: var(--ink); font-family: var(--font);
+  font-size: 15px; line-height: 1.45; padding: 0 16px 48px;
+}
+a { color: inherit; }
+.wrap { max-width: 1240px; margin-inline: auto; }
+
+/* ---------- masthead ---------- */
+.masthead {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px 16px; padding: 20px 0 14px;
+}
+.masthead h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+.masthead .sub { color: var(--ink-muted); font-size: 12.5px; font-weight: 500; }
+.status-row { display: flex; align-items: center; gap: 14px; }
+.live { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-muted); flex: none; }
+.live.on .dot { background: var(--good); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .live.on .dot { animation: none; } }
+button.icon-btn {
+  appearance: none; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 11px; font: 600 12.5px var(--font); cursor: pointer;
+}
+button.icon-btn:hover { color: var(--ink); border-color: var(--ink-muted); }
+
+/* ---------- tabs ---------- */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); margin-bottom: 20px; overflow-x: auto; }
+.tab {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 10px 14px; font: 600 14px var(--font); color: var(--ink-muted); cursor: pointer; white-space: nowrap;
+}
+.tab:hover { color: var(--ink-2); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--c13); }
+.tab:focus-visible, button:focus-visible { outline: 2px solid var(--c22); outline-offset: 2px; }
+
+/* ---------- layout: brasil ---------- */
+.layout {
+  display: grid; grid-template-columns: minmax(0,420px) minmax(0,1fr) minmax(0,260px);
+  gap: 18px; align-items: start;
+}
+@media (max-width: 1080px) { .layout { grid-template-columns: minmax(0,1fr); } }
+
+.panel {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+}
+.panel h2 { margin: 0 0 12px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+
+/* stat panel */
+.headline { margin: 0 0 4px; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+.headline .vs { color: var(--ink-muted); font-weight: 600; }
+.dek { margin: 0 0 18px; color: var(--ink-2); font-size: 13px; }
+
+.candidates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.cand { display: grid; gap: 4px; }
+.cand .name { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cand .swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.cand .pct { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.cand.c13 .pct { color: var(--c13); } .cand.c22 .pct { color: var(--c22); }
+.cand .votes { font-size: 11.5px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+
+.share-bar { position: relative; height: 10px; border-radius: 6px; overflow: hidden; background: var(--rule); display: flex; margin-bottom: 4px; }
+.share-bar i { display: block; height: 100%; }
+.share-bar i.c13 { background: var(--c13); }
+.share-bar i.c22 { background: var(--c22); }
+.share-bar .majority { position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 2px dashed rgba(255,255,255,.45); }
+.majority-label { font-size: 10.5px; color: var(--ink-muted); text-align: center; margin-bottom: 16px; }
+
+.progress-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+.progress-row strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.progress-track { height: 6px; background: var(--rule); border-radius: 4px; overflow: hidden; margin-bottom: 18px; }
+.progress-fill { height: 100%; background: var(--ink-2); transition: width .5s ease; }
+
+.chart-title { font-size: 12.5px; font-weight: 700; color: var(--ink-muted); margin: 4px 0 6px; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart .axis-line { stroke: var(--rule); stroke-width: 1; }
+.chart .series-13 { fill: none; stroke: var(--c13); stroke-width: 2; }
+.chart .series-22 { fill: none; stroke: var(--c22); stroke-width: 2; }
+.chart .tick-label { font-size: 10px; fill: var(--ink-muted); }
+.chart .empty-msg { fill: var(--ink-muted); font-size: 12px; text-anchor: middle; }
+.chart .crosshair { stroke: var(--ink-muted); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0; pointer-events: none; }
+.chart .hover-dot { opacity: 0; pointer-events: none; }
+.chart-tooltip {
+  position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 9px; font-size: 11.5px; color: var(--ink-2); white-space: nowrap; opacity: 0;
+  transform: translate(-50%, -110%); transition: opacity .1s;
+}
+
+/* map panel */
+.panel-map { min-height: 420px; position: relative; }
+.map-svg { display: block; width: 100%; height: auto; }
+.uf { stroke: var(--page); stroke-width: 1; cursor: default; }
+.uf:hover { stroke: var(--ink); stroke-width: 1.4; }
+.uf-label { font-size: 9.5px; font-weight: 700; fill: rgba(255,255,255,.85); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.map-legend { display: flex; align-items: center; gap: 14px; margin-top: 10px; font-size: 11.5px; color: var(--ink-2); }
+.map-legend .key { display: flex; align-items: center; gap: 6px; }
+.map-legend .swatch { width: 10px; height: 10px; border-radius: 3px; }
+.map-tooltip {
+  position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 11px; font-size: 12px; opacity: 0; transition: opacity .1s; z-index: 5;
+  min-width: 140px;
+}
+.map-tooltip .t-name { font-weight: 700; margin-bottom: 3px; }
+.map-tooltip .t-row { display: flex; justify-content: space-between; gap: 10px; color: var(--ink-2); }
+
+/* regioes sidebar */
+.regiao-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 9px 0; border-bottom: 1px solid var(--rule);
+}
+.regiao-row:last-child { border-bottom: 0; }
+.regiao-row .nome { font-size: 12.5px; font-weight: 700; color: var(--ink-2); grid-column: 1 / -1; }
+.regiao-row .lider { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.regiao-row .lider .swatch { width: 8px; height: 8px; border-radius: 2px; }
+.regiao-row .pct { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.regiao-row .mini-track { grid-column: 1 / -1; height: 4px; background: var(--rule); border-radius: 3px; overflow: hidden; display: flex; }
+.regiao-row .mini-track i { display: block; height: 100%; }
+
+/* exterior / virada simpler panels */
+.simple-stats { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat-tile { }
+.stat-tile .v { font-size: 24px; font-weight: 800; }
+.stat-tile .l { font-size: 11.5px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; }
+.city-list { display: grid; gap: 1px; max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.city-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 12px; background: var(--surface-1); font-size: 12.5px; }
+.city-row:nth-child(even) { background: var(--surface-2); }
+.city-row .c { color: var(--ink-muted); }
+
+footer.credits { margin-top: 28px; color: var(--ink-muted); font-size: 11.5px; line-height: 1.6; }
+footer.credits a { text-decoration: underline; }
+
+:fullscreen .wrap { max-width: none; padding: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div>
+    <h1>Apuração 2026 <span class="sub">· 2º turno, 25 de outubro</span></h1>
+  </div>
+  <div class="status-row">
+    <span class="live" id="live-indicator"><span class="dot"></span><span id="live-text">carregando…</span></span>
+    <button class="icon-btn" id="fullscreen-btn" type="button">⛶ Tela cheia</button>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Visões">
+  <button class="tab" role="tab" id="tab-brasil" aria-controls="view-brasil" aria-selected="true">Brasil, ao vivo</button>
+  <button class="tab" role="tab" id="tab-exterior" aria-controls="view-exterior" aria-selected="false">Exterior</button>
+  <button class="tab" role="tab" id="tab-virada" aria-controls="view-virada" aria-selected="false">Virada desde 2022</button>
+</nav>
+
+<main>
+  <section id="view-brasil" role="tabpanel" aria-labelledby="tab-brasil">
+    <div class="layout">
+      <article class="panel" id="panel-stats">
+        <h2>Presidente · Brasil</h2>
+        <p class="headline" id="headline">Carregando resultado…</p>
+        <p class="dek" id="dek"></p>
+
+        <div class="candidates" id="candidates"></div>
+        <div class="share-bar" id="share-bar"><div class="majority"></div></div>
+        <div class="majority-label">linha tracejada = 50% dos votos válidos</div>
+
+        <div class="progress-row">
+          <span>Seções apuradas</span>
+          <strong id="sections-label">—</strong>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+        <div class="chart-title">Ao longo da apuração</div>
+        <div class="chart" id="chart" style="position:relative"></div>
+      </article>
+
+      <article class="panel panel-map">
+        <h2>Mapa por estado</h2>
+        <div id="map-root" style="position:relative"></div>
+        <div class="map-legend">
+          <span class="key"><span class="swatch" style="background:var(--c13)"></span>Lula (PT)</span>
+          <span class="key"><span class="swatch" style="background:var(--c22)"></span>Flávio Bolsonaro (PL)</span>
+        </div>
+      </article>
+
+      <aside class="panel" id="panel-regioes">
+        <h2>Por região</h2>
+        <div id="regioes-list"></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-exterior" role="tabpanel" aria-labelledby="tab-exterior" hidden>
+    <div class="layout" style="grid-template-columns: minmax(0,1fr) minmax(0,340px)">
+      <article class="panel panel-map">
+        <h2>Mapa do voto no exterior</h2>
+        <div id="exterior-map-root" style="position:relative"></div>
+      </article>
+      <aside class="panel">
+        <h2>186 cidades</h2>
+        <div class="simple-stats" id="exterior-stats"></div>
+        <div class="city-list" id="city-list"></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-virada" role="tabpanel" aria-labelledby="tab-virada" hidden>
+    <article class="panel panel-map">
+      <h2>Virada por município desde o 1º turno de 2022</h2>
+      <p class="dek">Comparação do % de votos válidos de cada candidato por município, 2022 (1º turno) → 2026. Município aparece quando tem pelo menos 90% das seções apuradas.</p>
+      <div id="virada-map-root" style="position:relative"></div>
+      <div class="map-legend">
+        <span class="key"><span class="swatch" style="background:var(--c22)"></span>Avançou PL</span>
+        <span class="key"><span class="swatch" style="background:var(--baseline)"></span>Estável</span>
+        <span class="key"><span class="swatch" style="background:var(--c13)"></span>Avançou PT</span>
+      </div>
+    </article>
+  </section>
+</main>
+
+<footer class="credits">
+  Painel não-oficial. Dados: <a href="https://resultados.tse.jus.br" target="_blank" rel="noopener">TSE</a> (CC BY).
+  Mapas: IBGE e Natural Earth (domínio público). Pipeline de coleta de dados adaptado do projeto de
+  <a href="https://github.com/lsampaiorocha/brazil-votes-2026" target="_blank" rel="noopener">Leonardo Rocha</a> (MIT).
+  Código: MIT.
+</footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+"use strict";
+
+const DEMO = new URLSearchParams(location.search).has("demo");
+const DATA_DIR = DEMO ? "data-demo" : "data";
+const REFRESH_MS = 60_000;
+const C13 = "#e66767", C22 = "#3987e5", BASELINE = "#383835";
+const CAND_NAME = { "13": "Lula", "22": "Flávio Bolsonaro" };
+
+const REGIOES = {
+  "Norte": ["AC","AP","AM","PA","RO","RR","TO"],
+  "Nordeste": ["AL","BA","CE","MA","PB","PE","PI","RN","SE"],
+  "Centro-Oeste": ["DF","GO","MS","MT"],
+  "Sudeste": ["ES","MG","RJ","SP"],
+  "Sul": ["PR","RS","SC"],
+};
+
+function fmtPct(n) { return (n ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%"; }
+function fmtInt(n) { return (n ?? 0).toLocaleString("pt-BR"); }
+
+async function getJSON(path) {
+  const res = await fetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${path}: ${res.status}`);
+  return res.json();
+}
+
+function top2(candidates) {
+  const sorted = [...candidates].sort((a, b) => b.votes - a.votes);
+  return [sorted.find(c => c.number === "13") || sorted[0], sorted.find(c => c.number === "22") || sorted[1]];
+}
+
+// ---------------- stat panel ----------------
+function renderStats(national) {
+  const [c13, c22] = top2(national.candidates);
+  const valid = national.valid || 1;
+  const pct13 = 100 * c13.votes / valid, pct22 = 100 * c22.votes / valid;
+
+  const lider = pct13 >= pct22 ? c13 : c22;
+  document.getElementById("headline").innerHTML =
+    `<span style="color:${pct13 >= pct22 ? C13 : C22}">${CAND_NAME[lider.number] || lider.name}</span> lidera a apuração`;
+  document.getElementById("dek").textContent =
+    national.as_of ? `Atualizado às ${national.as_of.split(" ")[1] || national.as_of}` : "";
+
+  document.getElementById("candidates").innerHTML = `
+    <div class="cand c13"><span class="name"><span class="swatch" style="background:${C13}"></span>${CAND_NAME["13"]} (PT)</span>
+      <span class="pct">${fmtPct(pct13)}</span><span class="votes">${fmtInt(c13.votes)} votos</span></div>
+    <div class="cand c22"><span class="name"><span class="swatch" style="background:${C22}"></span>${CAND_NAME["22"]} (PL)</span>
+      <span class="pct">${fmtPct(pct22)}</span><span class="votes">${fmtInt(c22.votes)} votos</span></div>`;
+
+  document.getElementById("share-bar").innerHTML = `
+    <i class="c13" style="width:${pct13}%"></i><i class="c22" style="width:${pct22}%"></i>
+    <div class="majority"></div>`;
+
+  const pctApurado = national.sections_total ? 100 * national.sections_counted / national.sections_total : 0;
+  document.getElementById("sections-label").textContent =
+    `${fmtInt(national.sections_counted)} de ${fmtInt(national.sections_total)} (${fmtPct(pctApurado)})`;
+  document.getElementById("progress-fill").style.width = pctApurado + "%";
+}
+
+// ---------------- line chart ----------------
+function renderChart(pontos) {
+  const el = document.getElementById("chart");
+  const w = el.clientWidth || 380, h = 150, m = { top: 8, right: 10, bottom: 18, left: 28 };
+  el.innerHTML = "";
+  if (!pontos || pontos.length < 2) {
+    const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "chart");
+    svg.append("text").attr("class", "empty-msg").attr("x", w / 2).attr("y", h / 2).text("Sem histórico ainda — volta quando a apuração começar");
+    return;
+  }
+  const x = d3.scaleLinear().domain([0, 100]).range([m.left, w - m.right]);
+  const y = d3.scaleLinear().domain([30, 70]).range([h - m.bottom, m.top]).clamp(true);
+  const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "chart");
+
+  svg.append("line").attr("class", "axis-line").attr("x1", m.left).attr("x2", w - m.right).attr("y1", y(50)).attr("y2", y(50))
+    .attr("stroke-dasharray", "2 2");
+  [0, 50, 100].forEach(v => svg.append("text").attr("class", "tick-label").attr("x", x(v)).attr("y", h - 4).attr("text-anchor", v === 0 ? "start" : v === 100 ? "end" : "middle").text(v + "%"));
+
+  const line13 = d3.line().x(p => x(p.pct_apurado)).y(p => y(p["13"]));
+  const line22 = d3.line().x(p => x(p.pct_apurado)).y(p => y(p["22"]));
+  svg.append("path").datum(pontos).attr("class", "series-13").attr("d", line13);
+  svg.append("path").datum(pontos).attr("class", "series-22").attr("d", line22);
+
+  const crosshair = svg.append("line").attr("class", "crosshair").attr("y1", m.top).attr("y2", h - m.bottom);
+  const dot13 = svg.append("circle").attr("class", "hover-dot").attr("r", 3).attr("fill", C13);
+  const dot22 = svg.append("circle").attr("class", "hover-dot").attr("r", 3).attr("fill", C22);
+  let tooltip = el.querySelector(".chart-tooltip");
+  if (!tooltip) { tooltip = document.createElement("div"); tooltip.className = "chart-tooltip"; el.appendChild(tooltip); }
+
+  svg.append("rect").attr("fill", "transparent").attr("x", m.left).attr("y", 0).attr("width", w - m.left - m.right).attr("height", h)
+    .on("mousemove", (event) => {
+      const [mx] = d3.pointer(event);
+      const pct = x.invert(mx);
+      const closest = pontos.reduce((a, b) => Math.abs(b.pct_apurado - pct) < Math.abs(a.pct_apurado - pct) ? b : a);
+      crosshair.attr("x1", x(closest.pct_apurado)).attr("x2", x(closest.pct_apurado)).style("opacity", 1);
+      dot13.attr("cx", x(closest.pct_apurado)).attr("cy", y(closest["13"])).style("opacity", 1);
+      dot22.attr("cx", x(closest.pct_apurado)).attr("cy", y(closest["22"])).style("opacity", 1);
+      tooltip.style.left = x(closest.pct_apurado) + "px";
+      tooltip.style.top = Math.min(y(closest["13"]), y(closest["22"])) + "px";
+      tooltip.style.opacity = 1;
+      tooltip.innerHTML = `${fmtPct(closest.pct_apurado)} apurado<br><span style="color:${C13}">Lula ${fmtPct(closest["13"])}</span><br><span style="color:${C22}">Flávio ${fmtPct(closest["22"])}</span>`;
+    })
+    .on("mouseleave", () => { crosshair.style("opacity", 0); dot13.style("opacity", 0); dot22.style("opacity", 0); tooltip.style.opacity = 0; });
+}
+
+// ---------------- regioes ----------------
+function renderRegioes(statesData) {
+  const html = Object.entries(REGIOES).map(([nome, ufs]) => {
+    let v13 = 0, v22 = 0;
+    for (const uf of ufs) {
+      const r = statesData[uf];
+      if (!r) continue;
+      const by = Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
+      v13 += by["13"] || 0; v22 += by["22"] || 0;
+    }
+    const total = v13 + v22 || 1;
+    const p13 = 100 * v13 / total, p22 = 100 * v22 / total;
+    const liderCor = p13 >= p22 ? C13 : C22;
+    const liderNome = p13 >= p22 ? "Lula" : "Flávio";
+    const liderPct = Math.max(p13, p22);
+    return `<div class="regiao-row">
+      <span class="nome">${nome}</span>
+      <span class="lider"><span class="swatch" style="background:${liderCor}"></span>${liderNome}</span>
+      <span class="pct">${fmtPct(liderPct)}</span>
+      <div class="mini-track"><i style="background:${C13};width:${p13}%"></i><i style="background:${C22};width:${p22}%"></i></div>
+    </div>`;
+  }).join("");
+  document.getElementById("regioes-list").innerHTML = html;
+}
+
+// ---------------- correção de winding do IBGE ----------------
+// As malhas do IBGE vêm com o anel externo no sentido errado pra o d3-geo
+// (que usa o clipper de antimeridiano da esfera, não a regra plana do
+// GeoJSON) — sem isso, cada polígono desenha "o resto do mundo" em vez do
+// próprio estado/município, colado no retângulo da projeção.
+function fixWinding(geojson) {
+  for (const feature of geojson.features) {
+    const geom = feature.geometry;
+    if (!geom) continue;
+    if (geom.type === "Polygon") geom.coordinates = geom.coordinates.map(ring => ring.slice().reverse());
+    else if (geom.type === "MultiPolygon") geom.coordinates = geom.coordinates.map(poly => poly.map(ring => ring.slice().reverse()));
+  }
+  return geojson;
+}
+
+// ---------------- mapa por estado ----------------
+let mapBuilt = false, mapPaths, mapProjection;
+function buildMap(geojson) {
+  const root = document.getElementById("map-root");
+  const w = root.clientWidth || 600, h = w * 0.78;
+  root.innerHTML = "";
+  let tooltip = document.createElement("div");
+  tooltip.className = "map-tooltip";
+  root.appendChild(tooltip);
+
+  mapProjection = d3.geoMercator().fitSize([w, h], geojson);
+  const path = d3.geoPath(mapProjection);
+  const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
+  const g = svg.append("g");
+
+  mapPaths = g.selectAll("path.uf").data(geojson.features).join("path")
+    .attr("class", "uf").attr("d", path).attr("fill", BASELINE)
+    .on("mousemove", function (event, d) {
+      tooltip.style.opacity = 1;
+      const [mx, my] = d3.pointer(event, root);
+      tooltip.style.left = mx + 14 + "px";
+      tooltip.style.top = my + "px";
+      tooltip.dataset.uf = d.properties.uf;
+      this.dispatchEvent(new CustomEvent("uf-hover", { bubbles: true, detail: d.properties.uf }));
+    })
+    .on("mouseleave", () => { tooltip.style.opacity = 0; });
+
+  g.selectAll("text.uf-label").data(geojson.features).join("text")
+    .attr("class", "uf-label")
+    .attr("x", d => path.centroid(d)[0]).attr("y", d => path.centroid(d)[1])
+    .text(d => d.properties.uf);
+
+  root.addEventListener("uf-hover", (e) => {
+    const r = window.__lastStates && window.__lastStates[e.detail];
+    if (!r) return;
+    const by = Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
+    const total = (by["13"] || 0) + (by["22"] || 0) || 1;
+    const p13 = 100 * (by["13"] || 0) / total, p22 = 100 * (by["22"] || 0) / total;
+    tooltip.innerHTML = `<div class="t-name">${e.detail}</div>
+      <div class="t-row"><span style="color:${C13}">Lula</span><span>${fmtPct(p13)}</span></div>
+      <div class="t-row"><span style="color:${C22}">Flávio</span><span>${fmtPct(p22)}</span></div>`;
+  });
+  mapBuilt = true;
+}
+
+function updateMapColors(statesData) {
+  window.__lastStates = statesData;
+  if (!mapPaths) return;
+  mapPaths.attr("fill", d => {
+    const r = statesData[d.properties.uf];
+    if (!r) return BASELINE;
+    const by = Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
+    const v13 = by["13"] || 0, v22 = by["22"] || 0;
+    if (v13 === 0 && v22 === 0) return BASELINE;
+    return v13 >= v22 ? C13 : C22;
+  });
+}
+
+// ---------------- exterior ----------------
+let exteriorBuilt = false;
+function renderExterior(abroadData) {
+  document.getElementById("exterior-stats").innerHTML =
+    `<div class="stat-tile"><div class="v">${fmtInt(abroadData.cities.length)}</div><div class="l">cidades com voto</div></div>
+     <div class="stat-tile"><div class="v">${fmtInt(abroadData.total.valid)}</div><div class="l">votos válidos</div></div>`;
+
+  const sorted = [...abroadData.cities].sort((a, b) => (b.valid || 0) - (a.valid || 0));
+  document.getElementById("city-list").innerHTML = sorted.map(c => {
+    const by = Object.fromEntries(c.candidates.map(x => [x.number, x.votes]));
+    const total = (by["13"] || 0) + (by["22"] || 0) || 1;
+    const p13 = 100 * (by["13"] || 0) / total;
+    const lider = p13 >= 50 ? `<span style="color:${C13}">Lula ${fmtPct(p13)}</span>` : `<span style="color:${C22}">Flávio ${fmtPct(100 - p13)}</span>`;
+    return `<div class="city-row"><span>${c.city} <span class="c">· ${c.country}</span></span><span>${lider}</span></div>`;
+  }).join("");
+
+  if (!exteriorBuilt) {
+    getJSON("geo/countries-110m.json").then(topo => {
+      const root = document.getElementById("exterior-map-root");
+      const w = root.clientWidth || 600, h = w * 0.55;
+      const land = topojson.feature(topo, topo.objects.countries);
+      const projection = d3.geoNaturalEarth1().fitSize([w, h], land);
+      const path = d3.geoPath(projection);
+      const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
+      svg.append("g").selectAll("path").data(land.features).join("path").attr("d", path).attr("fill", "#2c2c2a").attr("stroke", "#0d0d0d");
+      svg.append("g").selectAll("circle").data(abroadData.cities).join("circle")
+        .attr("cx", d => (projection([d.lon, d.lat]) || [-10, -10])[0])
+        .attr("cy", d => (projection([d.lon, d.lat]) || [-10, -10])[1])
+        .attr("r", 3).attr("fill", d => {
+          const by = Object.fromEntries(d.candidates.map(x => [x.number, x.votes]));
+          return (by["13"] || 0) >= (by["22"] || 0) ? C13 : C22;
+        }).attr("opacity", 0.85);
+    });
+    exteriorBuilt = true;
+  }
+}
+
+// ---------------- virada ----------------
+let viradaBuilt = false;
+async function renderVirada() {
+  if (viradaBuilt) return;
+  viradaBuilt = true;
+  const [geo, atual, base, lookup] = await Promise.all([
+    getJSON("geo/municipalities.geojson").then(fixWinding),
+    getJSON(`${DATA_DIR}/municipalities_2026.json`),
+    getJSON("data/municipalities_2022.json"),
+    getJSON("data/municipality_lookup.json"),
+  ]);
+  // O geojson do IBGE usa código do IBGE (7 dígitos); os dados de votação
+  // usam código do TSE (5 dígitos) — precisa do lookup pra converter.
+  const ibgeToTse = {};
+  for (const [tse, place] of Object.entries(lookup)) ibgeToTse[place.ibge] = tse;
+
+  const root = document.getElementById("virada-map-root");
+  const w = root.clientWidth || 900, h = w * 0.78;
+  const projection = d3.geoMercator().fitSize([w, h], geo);
+  const path = d3.geoPath(projection);
+  const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
+  const diverging = d3.scaleLinear().domain([-15, 0, 15]).range([C13, BASELINE, C22]).clamp(true);
+
+  svg.append("g").selectAll("path").data(geo.features).join("path")
+    .attr("class", "uf").attr("d", path)
+    .attr("fill", d => {
+      const code = ibgeToTse[String(d.properties.codarea)];
+      const now = code && atual.municipalities[code], was = code && base[code];
+      if (!now || !was || now.sections_total === 0) return "#232322";
+      if (now.sections_counted / now.sections_total < 0.9) return "#232322";
+      const nowValid = (now["13"] || 0) + (now["22"] || 0) || 1;
+      const wasValid = (was["13"] || 0) + (was["22"] || 0) || 1;
+      const swing = (100 * (now["22"] || 0) / nowValid) - (100 * (was["22"] || 0) / wasValid);
+      return diverging(swing);
+    });
+}
+
+// ---------------- tabs ----------------
+const tabs = [...document.querySelectorAll(".tab")];
+function selectTab(tab) {
+  tabs.forEach(t => {
+    const sel = t === tab;
+    t.setAttribute("aria-selected", sel);
+    document.getElementById(t.getAttribute("aria-controls")).hidden = !sel;
+  });
+  if (tab.id === "tab-virada") renderVirada();
+}
+tabs.forEach(t => t.addEventListener("click", () => selectTab(t)));
+
+// ---------------- boot / poll ----------------
+let lastExteriorData = null;
+async function refresh() {
+  try {
+    const states = await getJSON(`${DATA_DIR}/states.json`);
+    if (!mapBuilt) {
+      const geo = await getJSON("geo/states.geojson").then(fixWinding);
+      buildMap(geo);
+    }
+    renderStats(states.national);
+    renderRegioes(states.states);
+    updateMapColors(states.states);
+    const liveEl = document.getElementById("live-indicator");
+    const fetchedAt = new Date(states.fetched_at);
+    document.getElementById("live-text").textContent =
+      DEMO ? "modo demonstração" : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
+    liveEl.classList.toggle("on", !DEMO);
+
+    try {
+      const history = await getJSON(`${DATA_DIR}/history.json`);
+      renderChart(history.pontos);
+    } catch { renderChart(null); }
+
+    lastExteriorData = states;
+  } catch (err) {
+    document.getElementById("live-text").textContent = "sem dados ainda";
+    console.error(err);
+  }
+}
+
+document.getElementById("tab-exterior").addEventListener("click", async () => {
+  try { renderExterior(await getJSON(`${DATA_DIR}/abroad.json`)); } catch (err) { console.error(err); }
+}, { once: true });
+
+document.getElementById("fullscreen-btn").addEventListener("click", () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen();
+});
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+window.addEventListener("resize", () => { mapBuilt = false; refresh(); });
+</script>
+</body>
+</html>
