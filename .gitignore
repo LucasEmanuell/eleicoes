@@ -4,3 +4,8 @@ web/mockups.html
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+
+# cópia local de referência do repo original do professor (não é nosso código, só consulta)
+reference/
+# venv local, se você criar um
+.venv/
