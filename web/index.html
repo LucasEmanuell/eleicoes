@@ -144,15 +144,33 @@ button.icon-btn:hover { color: var(--ink); border-color: var(--ink-muted); }
 .regiao-row .mini-track { grid-column: 1 / -1; height: 4px; background: var(--rule); border-radius: 3px; overflow: hidden; display: flex; }
 .regiao-row .mini-track i { display: block; height: 100%; }
 
-/* exterior / virada simpler panels */
-.simple-stats { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 16px; }
-.stat-tile { }
-.stat-tile .v { font-size: 24px; font-weight: 800; }
-.stat-tile .l { font-size: 11.5px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; }
-.city-list { display: grid; gap: 1px; max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-.city-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 12px; background: var(--surface-1); font-size: 12.5px; }
-.city-row:nth-child(even) { background: var(--surface-2); }
-.city-row .c { color: var(--ink-muted); }
+/* exterior */
+.layout-exterior { grid-template-columns: minmax(0,1fr) minmax(0,340px); }
+@media (max-width: 1080px) { .layout-exterior { grid-template-columns: minmax(0,1fr); } }
+.panel .sub-h2 { margin-top: 22px; }
+.bubble { stroke: var(--surface-1); stroke-width: 1; }
+.bubble.hover { stroke: var(--ink); stroke-width: 1.5; }
+.size-legend svg { display: block; overflow: visible; }
+.size-legend text { font-size: 10px; fill: var(--ink-muted); }
+.col-stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.layout-exterior > aside { align-self: start; }
+.city-table { max-height: 360px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+.city-row {
+  display: grid; grid-template-columns: minmax(0,1.4fr) 110px minmax(80px,1fr) 118px; gap: 14px; align-items: center;
+  padding: 7px 12px; font-size: 12.5px; border-bottom: 1px solid var(--rule);
+}
+.city-row:last-child { border-bottom: 0; }
+.city-row.head { position: sticky; top: 0; background: var(--surface-2); font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; z-index: 1; }
+.city-row .c, .regiao-row .c, .map-tooltip .c { color: var(--ink-muted); font-weight: 400; }
+.city-row .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.city-row .lider { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.city-row .mini-track { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; display: flex; }
+.city-row .mini-track i { display: block; height: 100%; }
+.city-row .mini-track i + i { border-left: 2px solid var(--surface-1); }
+@media (max-width: 640px) {
+  .city-row { grid-template-columns: minmax(0,1fr) 104px; }
+  .city-row .n, .city-row .mini-track { display: none; }
+}
 
 footer.credits { margin-top: 28px; color: var(--ink-muted); font-size: 11.5px; line-height: 1.6; }
 footer.credits a { text-decoration: underline; }
@@ -208,7 +226,7 @@ footer.credits a { text-decoration: underline; }
           <span class="key"><span class="swatch" style="background:var(--c13)"></span>Lula (PT)</span>
           <span class="key"><span class="swatch" style="background:var(--c22)"></span>Flávio Bolsonaro (PL)</span>
         </div>
-        <div class="map-legend" id="margin-legend"></div>
+        <div class="map-legend margin-legend"></div>
       </article>
 
       <aside class="panel" id="panel-regioes">
@@ -219,15 +237,32 @@ footer.credits a { text-decoration: underline; }
   </section>
 
   <section id="view-exterior" role="tabpanel" aria-labelledby="tab-exterior" hidden>
-    <div class="layout" style="grid-template-columns: minmax(0,1fr) minmax(0,340px)">
+    <div class="layout layout-exterior">
+      <div class="col-stack">
       <article class="panel panel-map">
         <h2>Mapa do voto no exterior</h2>
+        <p class="dek">Cada bolha é uma cidade: o tamanho é o número de votos válidos e a cor, quem lidera ali.</p>
         <div id="exterior-map-root" style="position:relative"></div>
+        <div class="map-legend">
+          <span class="key"><span class="swatch" style="background:var(--c13)"></span>Lula (PT)</span>
+          <span class="key"><span class="swatch" style="background:var(--c22)"></span>Flávio Bolsonaro (PL)</span>
+        </div>
+        <div class="map-legend"><span class="key">Tamanho</span><span class="key size-legend" id="size-legend"></span></div>
+        <div class="map-legend margin-legend"></div>
       </article>
+      <article class="panel panel-cities">
+        <h2>Cidades, da maior pra menor</h2>
+        <div class="city-table" id="city-list" role="table" aria-label="Resultado por cidade no exterior"></div>
+      </article>
+      </div>
       <aside class="panel">
-        <h2>186 cidades</h2>
-        <div class="simple-stats" id="exterior-stats"></div>
-        <div class="city-list" id="city-list"></div>
+        <h2>Resultado no exterior</h2>
+        <p class="headline" id="ext-headline"></p>
+        <p class="dek" id="ext-dek"></p>
+        <div class="candidates" id="ext-candidates"></div>
+        <div class="share-bar" id="ext-share-bar"></div>
+        <h2 class="sub-h2">Por região do mundo</h2>
+        <div id="ext-regioes"></div>
       </aside>
     </div>
   </section>
@@ -264,13 +299,20 @@ const DEMO = new URLSearchParams(location.search).has("demo");
 const DATA_DIR = DEMO ? "data-demo" : "data";
 const REFRESH_MS = 60_000;
 const C13 = "#e66767", C22 = "#3987e5", BASELINE = "#383835";
-// Tom do estado pela margem de vantagem (pontos percentuais dos votos válidos):
-// < 5, 5–15, > 15. Mistura a cor do candidato com o fundo do painel — quanto
-// mais apertada a disputa, mais apagado.
-const PANEL_BG = "#1a1a19";
-const MARGIN_STRENGTHS = [0.45, 0.72, 1];
-const shade = (color, strength) => d3.interpolateRgb(PANEL_BG, color)(strength);
-const marginStrength = margin => margin < 5 ? MARGIN_STRENGTHS[0] : margin < 15 ? MARGIN_STRENGTHS[1] : MARGIN_STRENGTHS[2];
+// Tom pela margem de vantagem (pontos percentuais dos votos válidos): até 5,
+// 5–15, mais de 15. Cada tom mistura a cor do candidato com um cinza neutro de
+// mesma luminosidade (55%, 78%, 100% em OKLab) — disputa apertada fica
+// acinzentada, não escura, então lê igual em tema claro ou escuro. Os tons
+// mais fracos de Lula e Flávio ainda ficam distinguíveis entre si (ΔE ≥ 15,
+// ≥ 10 pra daltonismo) e com contraste ≥ 4,8:1 sobre o painel.
+const SHADES = { "13": ["#c07a76", "#d4726e", C13], "22": ["#648bbc", "#5089d1", C22] };
+const marginStep = margin => margin < 5 ? 0 : margin < 15 ? 1 : 2;
+function leaderShade(v13, v22, valid) {
+  if (!v13 && !v22) return BASELINE;
+  const margin = 100 * Math.abs(v13 - v22) / (valid || v13 + v22);
+  return SHADES[v13 >= v22 ? "13" : "22"][marginStep(margin)];
+}
+const votesOf = r => Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
 const CAND_NAME = { "13": "Lula", "22": "Flávio Bolsonaro" };
 
 const REGIOES = {
@@ -461,13 +503,15 @@ function buildMap(geojson) {
 }
 
 function renderMarginLegend() {
-  const chip = strength =>
-    `<span class="swatch" style="background:linear-gradient(90deg, ${shade(C13, strength)} 50%, ${shade(C22, strength)} 50%)"></span>`;
-  document.getElementById("margin-legend").innerHTML =
-    `<span class="key">Vantagem</span>
-     <span class="key">${chip(MARGIN_STRENGTHS[0])}até 5 pts</span>
-     <span class="key">${chip(MARGIN_STRENGTHS[1])}5–15 pts</span>
-     <span class="key">${chip(MARGIN_STRENGTHS[2])}mais de 15 pts</span>`;
+  document.querySelectorAll(".margin-legend").forEach(el => { el.innerHTML = marginLegendHtml(); });
+}
+function marginLegendHtml() {
+  const chip = step =>
+    `<span class="swatch" style="background:linear-gradient(90deg, ${SHADES["13"][step]} 50%, ${SHADES["22"][step]} 50%)"></span>`;
+  return `<span class="key">Vantagem</span>
+     <span class="key">${chip(0)}até 5 pts</span>
+     <span class="key">${chip(1)}5–15 pts</span>
+     <span class="key">${chip(2)}mais de 15 pts</span>`;
 }
 renderMarginLegend();
 
@@ -477,50 +521,146 @@ function updateMapColors(statesData) {
   mapPaths.attr("fill", d => {
     const r = statesData[d.properties.uf];
     if (!r) return BASELINE;
-    const by = Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
-    const v13 = by["13"] || 0, v22 = by["22"] || 0;
-    if (v13 === 0 && v22 === 0) return BASELINE;
-    const valid = r.valid || v13 + v22;
-    const margin = 100 * Math.abs(v13 - v22) / valid;
-    return shade(v13 >= v22 ? C13 : C22, marginStrength(margin));
+    const by = votesOf(r);
+    return leaderShade(by["13"] || 0, by["22"] || 0, r.valid);
   });
 }
 
 // ---------------- exterior ----------------
-let exteriorBuilt = false;
-function renderExterior(abroadData) {
-  document.getElementById("exterior-stats").innerHTML =
-    `<div class="stat-tile"><div class="v">${fmtInt(abroadData.cities.length)}</div><div class="l">cidades com voto</div></div>
-     <div class="stat-tile"><div class="v">${fmtInt(abroadData.total.valid)}</div><div class="l">votos válidos</div></div>`;
+const REGIOES_MUNDO = {
+  "Europe": "Europa", "South America": "América do Sul", "North America": "América do Norte",
+  "C. America & Caribbean": "América Central e Caribe", "Asia": "Ásia", "Middle East": "Oriente Médio",
+  "Africa": "África", "Oceania": "Oceania",
+};
+const shareOf = (votes, valid) => valid ? 100 * votes / valid : 0;
+const escapeHtml = s => String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
+// Linha "líder + %" e barrinha Lula|Flávio, usadas na lista de regiões e de cidades.
+function leaderCell(v13, v22, valid) {
+  if (!v13 && !v22) return `<span class="c">sem votos ainda</span>`;
+  const lula = v13 >= v22;
+  return `<span style="color:${lula ? C13 : C22}">${lula ? "Lula" : "Flávio"} ${fmtPct(shareOf(lula ? v13 : v22, valid))}</span>`;
+}
+const miniTrack = (v13, v22, valid) =>
+  `<div class="mini-track"><i style="background:${C13};width:${shareOf(v13, valid)}%"></i><i style="background:${C22};width:${shareOf(v22, valid)}%"></i></div>`;
+
+let exteriorMap = null;  // { svg, projection, radius, tooltip } — o mapa base é desenhado uma vez só
+async function buildExteriorMap() {
+  const topo = await getJSON("geo/countries-110m.json");
+  const root = document.getElementById("exterior-map-root");
+  const w = root.clientWidth || 600;
+  const land = topojson.feature(topo, topo.objects.countries);
+  land.features = land.features.filter(f => f.properties.name !== "Antarctica");
+  const projection = d3.geoNaturalEarth1().fitWidth(w, land);
+  const h = Math.ceil(d3.geoPath(projection).bounds(land)[1][1]);
+  const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
+  svg.append("g").selectAll("path").data(land.features).join("path")
+    .attr("d", d3.geoPath(projection)).attr("fill", "#2c2c2a").attr("stroke", "#0d0d0d").attr("stroke-width", 0.5);
+  svg.append("g").attr("class", "bubbles");
+  const tooltip = document.createElement("div");
+  tooltip.className = "map-tooltip";
+  root.appendChild(tooltip);
+  // Raio proporcional à raiz dos votos (área ∝ votos); maior bolha ≈ 2,6% da largura.
+  exteriorMap = { svg, projection, tooltip, root, maxR: w * 0.026 };
+}
+
+function updateExteriorMap(cities) {
+  const { svg, projection, tooltip, root, maxR } = exteriorMap;
+  const maxValid = d3.max(cities, c => c.valid) || 1;
+  const radius = d3.scaleSqrt().domain([0, maxValid]).range([0, maxR]);
+  const r = c => Math.max(2, radius(c.valid || 0));
+  const placed = cities
+    .map(c => ({ ...c, xy: projection([c.lon, c.lat]) }))
+    .filter(c => c.xy)
+    .sort((a, b) => (b.valid || 0) - (a.valid || 0));  // grandes atrás, pequenas por cima
+
+  const bubbles = svg.select("g.bubbles").selectAll("circle").data(placed, d => d.code).join("circle")
+    .attr("class", "bubble")
+    .attr("cx", d => d.xy[0]).attr("cy", d => d.xy[1]).attr("r", r)
+    .attr("fill", d => { const by = votesOf(d); return leaderShade(by["13"] || 0, by["22"] || 0, d.valid); });
+  bubbles.order();
+
+  // Hover pela cidade mais próxima do cursor (Delaunay): as bolhas pequenas da
+  // Europa ficam coladas, então mirar exatamente no círculo seria frustrante.
+  const delaunay = d3.Delaunay.from(placed, d => d.xy[0], d => d.xy[1]);
+  svg.on("mousemove", event => {
+    const [mx, my] = d3.pointer(event);
+    const d = placed[delaunay.find(mx, my)];
+    const near = d && Math.hypot(d.xy[0] - mx, d.xy[1] - my) <= r(d) + 10;
+    bubbles.classed("hover", b => near && b.code === d.code);
+    if (!near) { tooltip.style.opacity = 0; return; }
+    const by = votesOf(d);
+    tooltip.innerHTML = `<div class="t-name">${escapeHtml(d.city)} <span class="c">· ${escapeHtml(d.country)}</span></div>
+      <div class="t-row"><span style="color:${C13}">Lula</span><span>${fmtPct(shareOf(by["13"] || 0, d.valid))}</span></div>
+      <div class="t-row"><span style="color:${C22}">Flávio</span><span>${fmtPct(shareOf(by["22"] || 0, d.valid))}</span></div>
+      <div class="t-row"><span>votos válidos</span><span>${fmtInt(d.valid)}</span></div>`;
+    const [px, py] = d3.pointer(event, root);
+    const flip = px > root.clientWidth - 190;
+    tooltip.style.left = (flip ? px - 14 - tooltip.offsetWidth : px + 14) + "px";
+    tooltip.style.top = py + "px";
+    tooltip.style.opacity = 1;
+  }).on("mouseleave", () => { tooltip.style.opacity = 0; bubbles.classed("hover", false); });
+
+  // Legenda de tamanho: 3 bolhas de referência com valores redondos.
+  const niceFloor = v => { const k = 10 ** Math.floor(Math.log10(v)); return Math.floor(v / k) * k; };
+  const ref = [...new Set([maxValid / 10, maxValid / 3, maxValid].filter(v => v >= 1).map(niceFloor))];
+  const big = radius(ref[ref.length - 1]);
+  let x = 0;
+  const items = ref.map(v => { const rr = Math.max(2, radius(v)); const cx = x + rr; x += 2 * rr + 34; return { v, rr, cx }; });
+  document.getElementById("size-legend").innerHTML =
+    `<svg width="${x}" height="${2 * big + 2}" aria-hidden="true">${items.map(({ v, rr, cx }) =>
+      `<circle cx="${cx}" cy="${2 * big + 1 - rr}" r="${rr}" fill="none" stroke="var(--ink-muted)"/>
+       <text x="${cx + rr + 4}" y="${2 * big - 1}">${fmtInt(v)}</text>`).join("")}</svg>
+     <span>votos válidos</span>`;
+}
+
+async function renderExterior(abroadData) {
+  const total = abroadData.total, valid = total.valid || 0;
+  const by = votesOf(total), v13 = by["13"] || 0, v22 = by["22"] || 0;
+  const p13 = shareOf(v13, valid), p22 = shareOf(v22, valid);
+  const lula = v13 >= v22;
+  document.getElementById("ext-headline").innerHTML = valid
+    ? `<span style="color:${lula ? C13 : C22}">${CAND_NAME[lula ? "13" : "22"]}</span> lidera no exterior`
+    : "Apuração no exterior ainda não começou";
+  document.getElementById("ext-dek").textContent =
+    `${fmtInt(valid)} votos válidos em ${fmtInt(abroadData.cities.length)} cidades`;
+  document.getElementById("ext-candidates").innerHTML = `
+    <div class="cand c13"><span class="name"><span class="swatch" style="background:${C13}"></span>${CAND_NAME["13"]} (PT)</span>
+      <span class="pct">${fmtPct(p13)}</span><span class="votes">${fmtInt(v13)} votos</span></div>
+    <div class="cand c22"><span class="name"><span class="swatch" style="background:${C22}"></span>${CAND_NAME["22"]} (PL)</span>
+      <span class="pct">${fmtPct(p22)}</span><span class="votes">${fmtInt(v22)} votos</span></div>`;
+  document.getElementById("ext-share-bar").innerHTML =
+    `<i class="c13" style="width:${p13}%"></i><i class="c22" style="width:${p22}%"></i><div class="majority"></div>`;
+
+  // Regiões do mundo, da que tem mais votos pra que tem menos.
+  const regioes = d3.rollups(abroadData.cities, cs => {
+    const t = { valid: 0, "13": 0, "22": 0 };
+    for (const c of cs) { const b = votesOf(c); t.valid += c.valid || 0; t["13"] += b["13"] || 0; t["22"] += b["22"] || 0; }
+    return t;
+  }, c => c.region).sort((a, b) => b[1].valid - a[1].valid);
+  document.getElementById("ext-regioes").innerHTML = regioes.map(([regiao, t]) => `
+    <div class="regiao-row">
+      <span class="nome">${escapeHtml(REGIOES_MUNDO[regiao] || regiao)} <span class="c">· ${fmtInt(t.valid)} votos</span></span>
+      <span class="lider">${leaderCell(t["13"], t["22"], t.valid)}</span><span></span>
+      ${miniTrack(t["13"], t["22"], t.valid)}
+    </div>`).join("");
+
+  // Tabela de cidades — também é a versão acessível (sem depender de cor) do mapa.
   const sorted = [...abroadData.cities].sort((a, b) => (b.valid || 0) - (a.valid || 0));
-  document.getElementById("city-list").innerHTML = sorted.map(c => {
-    const by = Object.fromEntries(c.candidates.map(x => [x.number, x.votes]));
-    const total = (by["13"] || 0) + (by["22"] || 0) || 1;
-    const p13 = 100 * (by["13"] || 0) / total;
-    const lider = p13 >= 50 ? `<span style="color:${C13}">Lula ${fmtPct(p13)}</span>` : `<span style="color:${C22}">Flávio ${fmtPct(100 - p13)}</span>`;
-    return `<div class="city-row"><span>${c.city} <span class="c">· ${c.country}</span></span><span>${lider}</span></div>`;
-  }).join("");
+  document.getElementById("city-list").innerHTML =
+    `<div class="city-row head" role="row"><span>Cidade</span><span class="n">Votos válidos</span><span>Lula × Flávio</span><span class="lider">Lidera</span></div>` +
+    sorted.map(c => {
+      const b = votesOf(c);
+      return `<div class="city-row" role="row">
+        <span>${escapeHtml(c.city)} <span class="c">· ${escapeHtml(c.country)}</span></span>
+        <span class="n">${fmtInt(c.valid)}</span>
+        ${miniTrack(b["13"] || 0, b["22"] || 0, c.valid)}
+        <span class="lider">${leaderCell(b["13"] || 0, b["22"] || 0, c.valid)}</span>
+      </div>`;
+    }).join("");
 
-  if (!exteriorBuilt) {
-    getJSON("geo/countries-110m.json").then(topo => {
-      const root = document.getElementById("exterior-map-root");
-      const w = root.clientWidth || 600, h = w * 0.55;
-      const land = topojson.feature(topo, topo.objects.countries);
-      const projection = d3.geoNaturalEarth1().fitSize([w, h], land);
-      const path = d3.geoPath(projection);
-      const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
-      svg.append("g").selectAll("path").data(land.features).join("path").attr("d", path).attr("fill", "#2c2c2a").attr("stroke", "#0d0d0d");
-      svg.append("g").selectAll("circle").data(abroadData.cities).join("circle")
-        .attr("cx", d => (projection([d.lon, d.lat]) || [-10, -10])[0])
-        .attr("cy", d => (projection([d.lon, d.lat]) || [-10, -10])[1])
-        .attr("r", 3).attr("fill", d => {
-          const by = Object.fromEntries(d.candidates.map(x => [x.number, x.votes]));
-          return (by["13"] || 0) >= (by["22"] || 0) ? C13 : C22;
-        }).attr("opacity", 0.85);
-    });
-    exteriorBuilt = true;
-  }
+  if (!exteriorMap) await buildExteriorMap();
+  updateExteriorMap(abroadData.cities);
 }
 
 // ---------------- virada ----------------
@@ -573,7 +713,6 @@ function selectTab(tab) {
 tabs.forEach(t => t.addEventListener("click", () => selectTab(t)));
 
 // ---------------- boot / poll ----------------
-let lastExteriorData = null;
 async function refresh() {
   try {
     const states = await getJSON(`${DATA_DIR}/states.json`);
@@ -595,16 +734,19 @@ async function refresh() {
       renderChart(history.pontos);
     } catch { renderChart(null); }
 
-    lastExteriorData = states;
+    if (exteriorMap) refreshExterior();
   } catch (err) {
     document.getElementById("live-text").textContent = "sem dados ainda";
     console.error(err);
   }
 }
 
-document.getElementById("tab-exterior").addEventListener("click", async () => {
-  try { renderExterior(await getJSON(`${DATA_DIR}/abroad.json`)); } catch (err) { console.error(err); }
-}, { once: true });
+// O exterior só é baixado depois que a aba é aberta pela primeira vez; a
+// partir daí acompanha o mesmo ciclo de atualização do resto da página.
+async function refreshExterior() {
+  try { await renderExterior(await getJSON(`${DATA_DIR}/abroad.json`)); } catch (err) { console.error(err); }
+}
+document.getElementById("tab-exterior").addEventListener("click", () => { if (!exteriorMap) refreshExterior(); });
 
 document.getElementById("fullscreen-btn").addEventListener("click", () => {
   if (document.fullscreenElement) document.exitFullscreen();
