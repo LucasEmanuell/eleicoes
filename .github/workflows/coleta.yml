@@ -1,0 +1,29 @@
+# Plano B da coleta (o principal é a VPS): roda o coletor nos servidores do
+# GitHub e publica no próprio repositório. Disparo manual em Actions → Coleta
+# do TSE → Run workflow. Um job do GitHub dura no máximo 6 horas.
+name: Coleta do TSE
+on:
+  workflow_dispatch:
+    inputs:
+      horas:
+        description: "Por quantas horas coletar (máx. 5.8)"
+        default: "5.8"
+permissions:
+  contents: write
+concurrency: coleta  # nunca duas coletas publicando ao mesmo tempo
+jobs:
+  coleta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: |
+          git config user.name "coleta-tse"
+          git config user.email "coleta-tse@users.noreply.github.com"
+      - run: ./rodar_coleta.sh "${{ inputs.horas }}"
+        env:
+          TZ: America/Sao_Paulo
