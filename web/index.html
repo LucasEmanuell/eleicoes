@@ -527,11 +527,6 @@ function updateMapColors(statesData) {
 }
 
 // ---------------- exterior ----------------
-const REGIOES_MUNDO = {
-  "Europe": "Europa", "South America": "América do Sul", "North America": "América do Norte",
-  "C. America & Caribbean": "América Central e Caribe", "Asia": "Ásia", "Middle East": "Oriente Médio",
-  "Africa": "África", "Oceania": "Oceania",
-};
 const shareOf = (votes, valid) => valid ? 100 * votes / valid : 0;
 const escapeHtml = s => String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
@@ -640,7 +635,7 @@ async function renderExterior(abroadData) {
   }, c => c.region).sort((a, b) => b[1].valid - a[1].valid);
   document.getElementById("ext-regioes").innerHTML = regioes.map(([regiao, t]) => `
     <div class="regiao-row">
-      <span class="nome">${escapeHtml(REGIOES_MUNDO[regiao] || regiao)} <span class="c">· ${fmtInt(t.valid)} votos</span></span>
+      <span class="nome">${escapeHtml(regiao)} <span class="c">· ${fmtInt(t.valid)} votos</span></span>
       <span class="lider">${leaderCell(t["13"], t["22"], t.valid)}</span><span></span>
       ${miniTrack(t["13"], t["22"], t.valid)}
     </div>`).join("");

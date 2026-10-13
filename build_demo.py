@@ -20,6 +20,7 @@ Pra curva real: git clone https://github.com/lsampaiorocha/brazil-votes-2026
 """
 
 import argparse
+import csv
 import json
 import logging
 import subprocess
@@ -89,12 +90,29 @@ def history_from_git(repo: Path) -> None:
                 len(points), points[0]["as_of"], points[-1]["as_of"])
 
 
+def localize_abroad(abroad: dict) -> dict:
+    """A coleta do professor tem nomes de cidade/país/região em inglês; aplica
+    os nomes em português do nosso abroad_cities.csv, casando pelo código do TSE."""
+    names = {
+        row["tse_code"]: row
+        for row in csv.DictReader((WEB.parent / "abroad_cities.csv").open(encoding="utf-8"))
+    }
+    for city in abroad["cities"]:
+        row = names.get(city["code"])
+        if row:
+            city.update(city=row["city"], country=row["country"], region=row["region"])
+    return abroad
+
+
 def main(source: Path, history_repo: Path | None) -> None:
     missing = [name for name in FILES if not (source / name).exists()]
     if missing:
         sys.exit(f"faltando em {source}: {', '.join(missing)}")
     for name in FILES:
-        write_json(DEMO / name, json.loads((source / name).read_text()))
+        payload = json.loads((source / name).read_text())
+        if name == "abroad.json":
+            payload = localize_abroad(payload)
+        write_json(DEMO / name, payload)
     if history_repo:
         history_from_git(history_repo)
         return
