@@ -278,7 +278,7 @@ footer.credits a { text-decoration: underline; }
 
         <div class="candidates" id="candidates"></div>
         <div class="share-bar" id="share-bar"><div class="majority"></div></div>
-        <div class="majority-label">linha tracejada = 50% dos votos válidos</div>
+        <div class="majority-label">tracejado: 50% dos válidos</div>
         <div class="diff-row" id="diff-row"></div>
         <div class="outros" id="outros"></div>
         <div class="totais" id="totais"></div>
@@ -321,7 +321,7 @@ footer.credits a { text-decoration: underline; }
       <div class="col-stack">
       <article class="panel panel-map">
         <h2>Mapa do voto no exterior</h2>
-        <p class="dek">Cada bolha é uma cidade: o tamanho é o número de votos válidos e a cor, quem lidera ali.</p>
+        <p class="dek">Tamanho: votos válidos. Cor: quem lidera na cidade.</p>
         <div id="exterior-map-root" style="position:relative"></div>
         <div class="map-legend">
           <span class="key"><span class="swatch" style="background:var(--c13)"></span>Lula (PT)</span>
@@ -331,7 +331,7 @@ footer.credits a { text-decoration: underline; }
         <div class="map-legend margin-legend"></div>
       </article>
       <article class="panel panel-cities">
-        <h2>Cidades, da maior pra menor</h2>
+        <h2>Cidades</h2>
         <div class="city-table" id="city-list" role="table" aria-label="Resultado por cidade no exterior"></div>
       </article>
       </div>
@@ -364,19 +364,19 @@ footer.credits a { text-decoration: underline; }
       </article>
       <aside class="panel">
         <h2>Por estado</h2>
-        <p class="dek">Variação da margem PL − PT desde 2022, em pontos.</p>
+        <p class="dek">Variação da margem PL − PT, em pontos.</p>
         <div id="vr-ufs"></div>
       </aside>
     </div>
     <div class="vr-lists">
       <article class="panel">
         <h2>Onde a mudança pesou mais</h2>
-        <p class="dek">Votos de margem ganhos por cada lado: variação da margem × votos válidos do município. Cidade grande pesa mais que cidade pequena com variação grande.</p>
+        <p class="dek">Votos de margem ganhos por cada lado (variação da margem × votos válidos).</p>
         <div class="moves" id="vr-impacto"></div>
       </article>
       <article class="panel">
         <h2>Maiores cidades que viraram</h2>
-        <p class="dek">Municípios onde o candidato que liderava em 2022 não lidera mais, por eleitorado.</p>
+        <p class="dek">Onde o líder de 2022 perdeu a liderança, por eleitorado.</p>
         <div id="vr-viradas"></div>
       </article>
     </div>
@@ -506,7 +506,7 @@ function renderChart(pontos) {
   el.innerHTML = "";
   if (!pontos || pontos.length < 2) {
     const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "chart");
-    svg.append("text").attr("class", "empty-msg").attr("x", w / 2).attr("y", h / 2).text("Sem histórico ainda — volta quando a apuração começar");
+    svg.append("text").attr("class", "empty-msg").attr("x", w / 2).attr("y", h / 2).text("O gráfico aparece quando a apuração começar");
     return;
   }
   const x = d3.scaleLinear().domain([0, 100]).range([m.left, w - m.right]);
@@ -870,7 +870,7 @@ async function renderExterior(abroadData) {
   const lula = v13 >= v22;
   document.getElementById("ext-headline").innerHTML = valid
     ? `<span style="color:${lula ? C13 : C22}">${CAND_NAME[lula ? "13" : "22"]}</span> lidera no exterior`
-    : "Apuração no exterior ainda não começou";
+    : "A apuração no exterior ainda não começou";
   document.getElementById("ext-dek").textContent =
     `${fmtInt(valid)} votos válidos em ${fmtInt(abroadData.cities.length)} cidades`;
   document.getElementById("ext-candidates").innerHTML = `
@@ -1110,7 +1110,7 @@ function renderViradaListas(linhas) {
         <span class="n"><span class="flip-tag" style="background:${FLIP_COLORS[l.antes]}">${sideName(l.antes)}</span> → <span class="flip-tag" style="background:${FLIP_COLORS[l.depois]}">${sideName(l.depois)}</span></span>
         <span class="s">${fmtInt(l.now.electorate)} eleitores · margem ${margemTxt(l.margemAntes)} → ${margemTxt(l.margem)}</span>
       </div>`).join("")
-    : `<p class="empty-msg-html">Nenhum município apurado trocou de lado até agora.</p>`;
+    : `<p class="empty-msg-html">Nenhum município virou até agora.</p>`;
 }
 
 function renderViradaKpis(calc) {
@@ -1128,18 +1128,17 @@ function renderViradaKpis(calc) {
     kpi("PL", `${fmtPts(t.s22 - t.w22)} pts`, `Jair ${fmtPct(t.w22)} → Flávio ${fmtPct(t.s22)}`, C22),
     kpi("Municípios que viraram", fmtInt(viradas.length),
       `${fmtInt(pro("22").length)} pro PL · ${fmtInt(pro("13").length)} pro PT · ${fmtMil(eleitoradoViradas)} de eleitores`, "var(--ink)"),
-  ].join("") : kpi("Virada desde 2022", "Aguardando", "O comparativo aparece quando os municípios passam de 90% apurado.", "var(--ink-muted)");
+  ].join("") : kpi("Virada desde 2022", "Aguardando", "Aparece quando os municípios passarem de 90% apurado.", "var(--ink-muted)");
 
   const total = calc.linhas.length + calc.aguardando;
   document.getElementById("vr-dek").textContent =
-    `${VR_BASE.agora} × ${VR_BASE.label}, município a município. ` +
-    `${fmtInt(calc.linhas.length)} de ${fmtInt(total)} municípios já têm pelo menos 90% das seções apuradas.`;
+    `${VR_BASE.agora} × ${VR_BASE.label}. ` +
+    `${fmtInt(calc.linhas.length)} de ${fmtInt(total)} municípios com 90% ou mais apurado.`;
   document.getElementById("vr-nota").innerHTML =
-    `<b>Como ler.</b> Margem é a vantagem do PL sobre o PT em pontos percentuais dos votos válidos (positiva = PL na frente). ` +
-    `A variação compara cada município com ele mesmo no ${VR_BASE.label}; os totais nacionais e por estado usam só os municípios já comparáveis. ` +
-    `O nº 22 compara Flávio Bolsonaro (2026) com Jair Bolsonaro (2022), ambos do PL. ` +
-    `${DEMO ? "Na demonstração, a comparação é entre 1º turnos; no dia 25 será 2º turno de 2026 × 2º turno de 2022. " : ""}` +
-    `Boa Esperança do Norte (MT) não existia em 2022 e fica de fora.`;
+    `Margem: % do PL menos % do PT nos votos válidos. Cada município é comparado com ele mesmo no ${VR_BASE.label}; ` +
+    `os totais somam só municípios com 90% ou mais apurado. No nº 22, Flávio (2026) é comparado com Jair (2022). ` +
+    `${DEMO ? "Na demonstração, 1º turno × 1º turno; no dia 25, 2º turno × 2º turno. " : ""}` +
+    `Boa Esperança do Norte (MT) não existia em 2022.`;
 }
 
 async function renderVirada() {
@@ -1180,7 +1179,7 @@ async function refresh() {
     const liveEl = document.getElementById("live-indicator");
     const fetchedAt = new Date(states.fetched_at);
     document.getElementById("live-text").textContent =
-      DEMO ? "demonstração · dados reais do 1º turno (04/10)" : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
+      DEMO ? "demonstração · dados do 1º turno (4/10)" : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
     liveEl.classList.toggle("on", !DEMO);
 
     try {
