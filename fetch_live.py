@@ -163,18 +163,11 @@ def write_json_atomically(path: Path, payload: dict) -> None:
     os.replace(temporary, path)
 
 
-def append_history(national: dict) -> None:
-    """Acrescenta um ponto ao histórico nacional, pra curva 'ao longo da apuração'."""
-    history_path = DATA / "history.json"
-    points: list[dict] = []
-    if history_path.exists():
-        try:
-            points = json.loads(history_path.read_text()).get("pontos", [])
-        except (json.JSONDecodeError, OSError):
-            points = []
+def history_point(national: dict) -> dict:
+    """Um ponto da curva 'ao longo da apuração': % apurado e % de válidos por candidato."""
     votes_by_number = {c["number"]: c["votes"] for c in national["candidates"]}
     valid = national["valid"] or 1
-    point = {
+    return {
         "as_of": national["as_of"],
         "pct_apurado": round(
             100 * national["sections_counted"] / national["sections_total"], 2
@@ -184,6 +177,18 @@ def append_history(national: dict) -> None:
             for number in CANDIDATE_NUMBERS
         },
     }
+
+
+def append_history(national: dict) -> None:
+    """Acrescenta um ponto ao histórico nacional, pra curva 'ao longo da apuração'."""
+    history_path = DATA / "history.json"
+    points: list[dict] = []
+    if history_path.exists():
+        try:
+            points = json.loads(history_path.read_text()).get("pontos", [])
+        except (json.JSONDecodeError, OSError):
+            points = []
+    point = history_point(national)
     # Evita repetir ponto se o TSE ainda não atualizou desde o último ciclo.
     if points and points[-1]["as_of"] == point["as_of"]:
         points[-1] = point

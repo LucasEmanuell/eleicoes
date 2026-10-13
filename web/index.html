@@ -334,8 +334,15 @@ function renderChart(pontos) {
     return;
   }
   const x = d3.scaleLinear().domain([0, 100]).range([m.left, w - m.right]);
-  const y = d3.scaleLinear().domain([30, 70]).range([h - m.bottom, m.top]).clamp(true);
+  // Eixo vertical ajustado aos dados (sempre incluindo a linha de 50%), com
+  // no mínimo 10 pts de amplitude pra não exagerar oscilações pequenas.
+  const valores = pontos.flatMap(p => [p["13"], p["22"]]).concat(50);
+  let lo = d3.min(valores) - 1, hi = d3.max(valores) + 1;
+  if (hi - lo < 10) { const meio = (hi + lo) / 2; lo = meio - 5; hi = meio + 5; }
+  const y = d3.scaleLinear().domain([lo, hi]).nice().range([h - m.bottom, m.top]);
   const svg = d3.select(el).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "chart");
+  y.ticks(4).forEach(v => svg.append("text").attr("class", "tick-label").attr("x", m.left - 4).attr("y", y(v) + 3)
+    .attr("text-anchor", "end").text(v + "%"));
 
   svg.append("line").attr("class", "axis-line").attr("x1", m.left).attr("x2", w - m.right).attr("y1", y(50)).attr("y2", y(50))
     .attr("stroke-dasharray", "2 2");

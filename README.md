@@ -52,7 +52,10 @@ python3 prepare.py
 
 # gera dados de demonstração com a coleta real do 1º turno de 2026 (precisa de reference/professor-original/,
 # ou passe outra pasta com a saída do fetch_live.py: python3 build_demo.py caminho/)
-python3 build_demo.py
+# --historico-git reconstrói a curva "ao longo da apuração" real da noite de 4/10
+# a partir dos commits do repo do professor (sem ela, a curva é sintética)
+git clone https://github.com/lsampaiorocha/brazil-votes-2026 ../brazil-votes-2026
+python3 build_demo.py --historico-git ../brazil-votes-2026
 
 # serve o site localmente
 cd web && python3 -m http.server 8000
