@@ -559,7 +559,7 @@ async function refresh() {
     const liveEl = document.getElementById("live-indicator");
     const fetchedAt = new Date(states.fetched_at);
     document.getElementById("live-text").textContent =
-      DEMO ? "modo demonstração" : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
+      DEMO ? "demonstração · dados reais do 1º turno (04/10)" : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
     liveEl.classList.toggle("on", !DEMO);
 
     try {

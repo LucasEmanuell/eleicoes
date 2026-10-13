@@ -50,7 +50,8 @@ pip install -r requirements.txt
 # setup único (baixa mapas do IBGE, monta lookup, constrói base de 2022)
 python3 prepare.py
 
-# gera dados de demonstração com resultados reais de 2022 (não depende da eleição já ter acontecido)
+# gera dados de demonstração com a coleta real do 1º turno de 2026 (precisa de reference/professor-original/,
+# ou passe outra pasta com a saída do fetch_live.py: python3 build_demo.py caminho/)
 python3 build_demo.py
 
 # serve o site localmente

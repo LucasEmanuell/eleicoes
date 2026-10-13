@@ -1,63 +1,34 @@
-"""Gera web/data-demo/ a partir dos resultados reais de 2022, pra testar o
-site antes do dia da eleição (acessando com ?demo na URL).
+"""Gera web/data-demo/ a partir de uma coleta real do fetch_live.py, pra
+testar o site antes do dia da eleição (acessando com ?demo na URL).
 
-Adaptado do repo original de Leonardo Rocha (MIT) — lógica idêntica, com
-adição do history.json de demonstração (não existia no original, é a
-curva "ao longo da apuração" do front-end novo).
+Por padrão usa a coleta final do 1º turno de 2026 feita por Leonardo Rocha
+(reference/professor-original/web/data/) — é a mesma saída que o
+fetch_live.py gera no dia, então a demo testa o front-end com dado real e
+no formato real. O history.json não existia na coleta original, então é
+sintetizado a partir do resultado final.
+
+    python3 build_demo.py                  # usa a coleta do professor
+    python3 build_demo.py caminho/da/coleta # usa outra pasta com a mesma saída
 """
 
-import csv
+import json
 import logging
+import sys
+from pathlib import Path
 
-import pandas as pd
-
-from prepare import WEB, read_presidential_csv_2022, write_json
+from prepare import WEB, write_json
 
 logger = logging.getLogger(__name__)
 
 DEMO = WEB / "data-demo"
-
-
-def build_result(
-    votes: pd.DataFrame, details: pd.DataFrame, candidates: pd.DataFrame
-) -> dict:
-    votes_by_number = votes.groupby("NR_CANDIDATO").QT_VOTOS_NOMINAIS_VALIDOS.sum()
-    totalized_at = pd.to_datetime(
-        details.DT_ULTIMA_TOTALIZACAO + " " + details.HH_ULTIMA_TOTALIZACAO,
-        format="%d/%m/%Y %H:%M:%S",
-    ).max()
-    result_candidates = [
-        {
-            "number": str(row.NR_CANDIDATO),
-            "name": row.NM_URNA_CANDIDATO,
-            "party": row.SG_PARTIDO,
-            "votes": int(votes_by_number.get(row.NR_CANDIDATO, 0)),
-            "status": "",
-        }
-        for row in candidates.itertuples()
-    ]
-    result_candidates.sort(
-        key=lambda candidate: (-candidate["votes"], candidate["number"])
-    )
-    sections = int(details.QT_TOTAL_SECOES.sum())
-    return {
-        "as_of": totalized_at.strftime("%d/%m/%Y %H:%M:%S"),
-        "sections_total": sections,
-        "sections_counted": sections,
-        "electorate": int(details.QT_APTOS.sum()),
-        "electorate_counted": int(details.QT_APTOS.sum()),
-        "turnout": int(details.QT_COMPARECIMENTO.sum()),
-        "valid": int(details.QT_TOTAL_VOTOS_VALIDOS.sum()),
-        "blank": int(details.QT_VOTOS_BRANCOS.sum()),
-        "null": int(details.QT_TOTAL_VOTOS_NULOS.sum()),
-        "candidates": result_candidates,
-    }
+DEFAULT_SOURCE = WEB.parent / "reference" / "professor-original" / "web" / "data"
+FILES = ("states.json", "abroad.json", "municipalities_2026.json")
 
 
 def build_demo_history(national: dict) -> None:
     """Sintetiza uma curva plausível de 0% a 100% apurado pro gráfico de
     demonstração — não é um histórico real (não existia no coletor
-    original), só interpola em direção ao resultado final de 2022."""
+    original), só interpola em direção ao resultado final."""
     votes_by_number = {c["number"]: c["votes"] for c in national["candidates"]}
     valid = national["valid"] or 1
     final = {
@@ -82,110 +53,18 @@ def build_demo_history(national: dict) -> None:
     write_json(DEMO / "history.json", {"pontos": points})
 
 
-def main() -> None:
-    votes = read_presidential_csv_2022(
-        "votacao_candidato_munzona",
-        [
-            "NR_TURNO", "SG_UF", "CD_MUNICIPIO", "NR_CANDIDATO",
-            "NM_URNA_CANDIDATO", "SG_PARTIDO", "QT_VOTOS_NOMINAIS_VALIDOS",
-        ],
-    )
-    details = read_presidential_csv_2022(
-        "detalhe_votacao_munzona",
-        [
-            "NR_TURNO", "SG_UF", "CD_MUNICIPIO", "QT_APTOS", "QT_TOTAL_SECOES",
-            "QT_COMPARECIMENTO", "QT_TOTAL_VOTOS_VALIDOS", "QT_VOTOS_BRANCOS",
-            "QT_TOTAL_VOTOS_NULOS", "HH_ULTIMA_TOTALIZACAO", "DT_ULTIMA_TOTALIZACAO",
-        ],
-    )
-    first_votes, first_details = (
-        votes[votes.NR_TURNO == 1],
-        details[details.NR_TURNO == 1],
-    )
-    candidates = first_votes.drop_duplicates("NR_CANDIDATO")[
-        ["NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO"]
-    ]
-    fetched_at = "2022-10-02T23:59:00-03:00"
-
-    def result_for(mask_votes: pd.Series, mask_details: pd.Series) -> dict:
-        return build_result(
-            first_votes[mask_votes], first_details[mask_details], candidates
-        )
-
-    abroad = result_for(first_votes.SG_UF == "ZZ", first_details.SG_UF == "ZZ")
-    national = result_for(first_votes.SG_UF.notna(), first_details.SG_UF.notna())
-    write_json(
-        DEMO / "states.json",
-        {
-            "fetched_at": fetched_at,
-            "national": national,
-            "abroad": abroad,
-            "states": {
-                state: result_for(
-                    first_votes.SG_UF == state, first_details.SG_UF == state
-                )
-                for state in sorted(first_details.SG_UF.unique())
-                if state != "ZZ"
-            },
-        },
-    )
-    build_demo_history(national)
-
-    cities = []
-    abroad_codes = set(
-        first_details[first_details.SG_UF == "ZZ"].CD_MUNICIPIO.astype(int)
-    )
-    for city in csv.DictReader((WEB.parent / "abroad_cities.csv").open()):
-        code = int(city["tse_code"])
-        if code not in abroad_codes:
-            continue
-        cities.append(
-            {
-                "code": city["tse_code"],
-                "city": city["city"],
-                "country": city["country"],
-                "region": city["region"],
-                "lat": float(city["lat"]),
-                "lon": float(city["lon"]),
-                **result_for(
-                    first_votes.CD_MUNICIPIO == code,
-                    first_details.CD_MUNICIPIO.astype(int) == code,
-                ),
-            }
-        )
-    write_json(
-        DEMO / "abroad.json",
-        {"fetched_at": fetched_at, "total": abroad, "cities": cities},
-    )
-
-    # A aba de virada compara com o 1º turno de 2022, então a demo alimenta ela com o 2º turno de 2022.
-    runoff_votes = votes[(votes.NR_TURNO == 2) & (votes.SG_UF != "ZZ")]
-    runoff_details = details[(details.NR_TURNO == 2) & (details.SG_UF != "ZZ")]
-    runoff_by_candidate = runoff_votes.pivot_table(
-        index="CD_MUNICIPIO", columns="NR_CANDIDATO",
-        values="QT_VOTOS_NOMINAIS_VALIDOS", aggfunc="sum", fill_value=0,
-    )
-    runoff_totals = runoff_details.groupby("CD_MUNICIPIO")[
-        ["QT_TOTAL_SECOES", "QT_APTOS", "QT_TOTAL_VOTOS_VALIDOS"]
-    ].sum()
-    municipalities = {
-        f"{int(code):05d}": {
-            "sections_total": int(row.QT_TOTAL_SECOES),
-            "sections_counted": int(row.QT_TOTAL_SECOES),
-            "electorate": int(row.QT_APTOS),
-            "valid": int(row.QT_TOTAL_VOTOS_VALIDOS),
-            "13": int(runoff_by_candidate.loc[code, 13]),
-            "22": int(runoff_by_candidate.loc[code, 22]),
-        }
-        for code, row in runoff_totals.iterrows()
-    }
-    write_json(
-        DEMO / "municipalities_2026.json",
-        {"fetched_at": "2022-10-30T23:59:00-03:00", "municipalities": municipalities},
-    )
+def main(source: Path) -> None:
+    missing = [name for name in FILES if not (source / name).exists()]
+    if missing:
+        sys.exit(f"faltando em {source}: {', '.join(missing)}")
+    for name in FILES:
+        write_json(DEMO / name, json.loads((source / name).read_text()))
+    states = json.loads((source / "states.json").read_text())
+    build_demo_history(states["national"])
+    logger.info("history.json sintetizado (%s)", states["national"]["as_of"])
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     DEMO.mkdir(parents=True, exist_ok=True)
-    main()
+    main(Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_SOURCE)
