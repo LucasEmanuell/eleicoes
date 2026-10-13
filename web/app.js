@@ -46,7 +46,9 @@ function fmtPct(n) { return (n ?? 0).toLocaleString("pt-BR", { minimumFractionDi
 function fmtInt(n) { return (n ?? 0).toLocaleString("pt-BR"); }
 
 async function getJSON(path) {
-  const res = await fetch(path, { cache: "no-store" });
+  // no-cache: o navegador pergunta ao servidor se mudou (304 vazio quando não) em vez
+  // de baixar tudo de novo a cada minuto; o número chega igual de rápido.
+  const res = await fetch(path, { cache: "no-cache" });
   if (!res.ok) throw new Error(`${path}: ${res.status}`);
   return res.json();
 }

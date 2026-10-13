@@ -1,4 +1,4 @@
-# Plano B da coleta (o principal é a VPS): roda o coletor nos servidores do
+# Reserva da coleta (o principal é o PC): roda o coletor nos servidores do
 # GitHub e publica no próprio repositório. Disparo manual em Actions → Coleta
 # do TSE → Run workflow. Um job do GitHub dura no máximo 6 horas.
 name: Coleta do TSE
@@ -10,6 +10,7 @@ on:
         default: "5.8"
 permissions:
   contents: write
+  actions: write  # pra pedir o deploy do Pages depois de cada publicação
 concurrency: coleta  # nunca duas coletas publicando ao mesmo tempo
 jobs:
   coleta:
@@ -27,4 +28,5 @@ jobs:
       - run: ./rodar_coleta.sh "$HORAS"
         env:
           HORAS: ${{ inputs.horas }}  # via env, nunca interpolado direto no shell
+          GH_TOKEN: ${{ github.token }}
           TZ: America/Sao_Paulo
