@@ -144,6 +144,7 @@ button.icon-btn:hover { color: var(--ink); border-color: var(--ink-muted); }
 .regiao-row .mini-track { grid-column: 1 / -1; height: 4px; background: var(--rule); border-radius: 3px; overflow: hidden; display: flex; }
 .regiao-row .mini-track i { display: block; height: 100%; }
 
+.aviso { margin: 0 0 12px; padding: 9px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); font-size: 13px; color: var(--ink-2); }
 /* brasil: cartão, mapa, regiões */
 .status-badge { font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; display: inline-flex; align-items: center; gap: 6px; }
 .status-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-muted); }
@@ -259,6 +260,7 @@ footer.credits a { text-decoration: underline; }
   </div>
 </header>
 
+<p class="aviso" id="aviso" hidden>A apuração do 2º turno começa às 17h de 25/10. Até lá, o resultado do 1º turno.</p>
 <nav class="tabs" role="tablist" aria-label="Visões">
   <button class="tab" role="tab" id="tab-brasil" aria-controls="view-brasil" aria-selected="true">Brasil, ao vivo</button>
   <button class="tab" role="tab" id="tab-exterior" aria-controls="view-exterior" aria-selected="false">Exterior</button>
@@ -397,7 +399,21 @@ footer.credits a { text-decoration: underline; }
 "use strict";
 
 const DEMO = new URLSearchParams(location.search).has("demo");
-const DATA_DIR = DEMO ? "data-demo" : "data";
+// Enquanto o 2º turno não tem votos, o endereço principal mostra o 1º turno
+// (a mesma pasta da demo). Quando o coletor publica os primeiros votos, a
+// página recarrega sozinha no modo ao vivo.
+let PRIMEIRO_TURNO = DEMO;
+let DATA_DIR = DEMO ? "data-demo" : "data";
+async function segundoTurnoTemVotos() {
+  try { const s = await getJSON("data/states.json"); return !!(s.national && s.national.valid); } catch { return false; }
+}
+async function detectarModo() {
+  if (DEMO) return;
+  const aoVivo = await segundoTurnoTemVotos();
+  PRIMEIRO_TURNO = !aoVivo;
+  DATA_DIR = aoVivo ? "data" : "data-demo";
+  document.getElementById("aviso").hidden = aoVivo;
+}
 const REFRESH_MS = 60_000;
 const C13 = "#e66767", C22 = "#3987e5", BASELINE = "#383835";
 // Tom pela margem de vantagem (pontos percentuais dos votos válidos): até 5,
@@ -917,9 +933,10 @@ async function renderExterior(abroadData) {
 // (Lula × Jair); na demo, que usa o 1º turno de 2026, com o 1º de 2022.
 // Comparar turnos diferentes faria os dois parecerem crescer só porque os
 // votos de terceiros somem no 2º turno.
-const VR_BASE = DEMO
+const vrBaseFor = primeiroTurno => primeiroTurno
   ? { file: "data/municipalities_2022.json", label: "1º turno de 2022", agora: "1º turno de 2026" }
   : { file: "data/municipalities_2022_t2.json", label: "2º turno de 2022", agora: "2º turno de 2026" };
+let VR_BASE = vrBaseFor(PRIMEIRO_TURNO);
 const MIN_APURADO = 0.9;  // parcial cedo é enviesado; só compara município com ≥ 90% das seções
 // Variação da margem PL − PT em pontos: 7 faixas. Cada lado tem matiz fixo e
 // luminosidade crescente (validado: ΔL ≥ 0,06 entre degraus; vermelho e azul
@@ -1137,7 +1154,7 @@ function renderViradaKpis(calc) {
   document.getElementById("vr-nota").innerHTML =
     `Margem: % do PL menos % do PT nos votos válidos. Cada município é comparado com ele mesmo no ${VR_BASE.label}; ` +
     `os totais somam só municípios com 90% ou mais apurado. No nº 22, Flávio (2026) é comparado com Jair (2022). ` +
-    `${DEMO ? "Na demonstração, 1º turno × 1º turno; no dia 25, 2º turno × 2º turno. " : ""}` +
+    `${PRIMEIRO_TURNO ? "No 2º turno, a comparação passa a ser com o 2º turno de 2022. " : ""}` +
     `Boa Esperança do Norte (MT) não existia em 2022.`;
 }
 
@@ -1168,6 +1185,7 @@ tabs.forEach(t => t.addEventListener("click", () => selectTab(t)));
 // ---------------- boot / poll ----------------
 async function refresh() {
   try {
+    if (!DEMO && PRIMEIRO_TURNO && await segundoTurnoTemVotos()) { location.reload(); return; }
     const states = await getJSON(`${DATA_DIR}/states.json`);
     if (!mapBuilt) {
       const geo = await getJSON("geo/states.geojson").then(fixWinding);
@@ -1179,12 +1197,14 @@ async function refresh() {
     const liveEl = document.getElementById("live-indicator");
     const fetchedAt = new Date(states.fetched_at);
     document.getElementById("live-text").textContent =
-      DEMO ? "demonstração · dados do 1º turno (4/10)" : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
-    liveEl.classList.toggle("on", !DEMO);
+      DEMO ? "demonstração · dados do 1º turno (4/10)"
+      : PRIMEIRO_TURNO ? "1º turno · resultado final (4/10)"
+      : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
+    liveEl.classList.toggle("on", !PRIMEIRO_TURNO);
 
     try {
       const history = await getJSON(`${DATA_DIR}/history.json`);
-      renderChart(history.pontos);
+      renderChart((history.pontos || []).filter(p => p.as_of));
     } catch { renderChart(null); }
 
     if (exteriorMap) refreshExterior();
@@ -1207,8 +1227,11 @@ document.getElementById("fullscreen-btn").addEventListener("click", () => {
   else document.documentElement.requestFullscreen();
 });
 
-refresh();
-setInterval(refresh, REFRESH_MS);
+detectarModo().then(() => {
+  VR_BASE = vrBaseFor(PRIMEIRO_TURNO);
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+});
 window.addEventListener("resize", () => { mapBuilt = false; refresh(); });
 </script>
 </body>

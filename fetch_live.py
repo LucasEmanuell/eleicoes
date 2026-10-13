@@ -27,7 +27,11 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent
 DATA = ROOT / "web" / "data"
 BRASILIA = ZoneInfo("America/Sao_Paulo")
-BASE_URL = "https://resultados.tse.jus.br/oficial/ele2026/6257/dados"
+# Código da eleição no TSE: cada turno tem o seu. 6257 foi o 1º turno presidencial
+# (4/10); 6258 é o 2º turno (25/10). Lista oficial em
+# https://resultados.tse.jus.br/oficial/comum/config/ele-c.json
+ELECTION_CODE = "6258"
+BASE_URL = f"https://resultados.tse.jus.br/oficial/ele2026/{ELECTION_CODE}/dados"
 STATES = [
     "ac", "al", "am", "ap", "ba", "ce", "df", "es", "go", "ma", "mg", "ms",
     "mt", "pa", "pb", "pe", "pi", "pr", "rj", "rn", "ro", "rr", "rs", "sc",
@@ -135,7 +139,7 @@ def parse_unified_result(payload: dict) -> dict:
 
 
 def fetch_result(area: str, state: str) -> dict | None:
-    url = f"{BASE_URL}/{state}/{area}-c0001-e006257-u.json"
+    url = f"{BASE_URL}/{state}/{area}-c0001-e{int(ELECTION_CODE):06d}-u.json"
     rate_limiter.wait()
     try:
         response = session.get(url, timeout=20)
@@ -181,6 +185,8 @@ def history_point(national: dict) -> dict:
 
 def append_history(national: dict) -> None:
     """Acrescenta um ponto ao histórico nacional, pra curva 'ao longo da apuração'."""
+    if not national["valid"]:
+        return  # antes da apuração começar, um ponto 0% × 0% só achataria a curva
     history_path = DATA / "history.json"
     points: list[dict] = []
     if history_path.exists():
