@@ -193,3 +193,13 @@ def test_parse_unified_result_ignores_a_totalization_time_later_than_the_file_it
     payload["dt"], payload["ht"] = "05/10/2026", "09:19:47"
 
     assert parse_unified_result(payload)["as_of"] == "04/10/2026 19:04:22"
+
+
+def test_write_if_changed_ignores_fetched_at_but_writes_real_changes(tmp_path):
+    path = tmp_path / "states.json"
+    assert fetch_live.write_if_changed(path, {"fetched_at": "17:00:00", "valid": 10})
+    # Só o horário da coleta mudou: não regrava (senão cada ciclo de 30 s vira um deploy).
+    assert not fetch_live.write_if_changed(path, {"fetched_at": "17:00:30", "valid": 10})
+    assert json.loads(path.read_text())["fetched_at"] == "17:00:00"
+    assert fetch_live.write_if_changed(path, {"fetched_at": "17:01:00", "valid": 11})
+    assert json.loads(path.read_text())["valid"] == 11

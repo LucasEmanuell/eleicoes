@@ -16,7 +16,7 @@ Site: https://lucasemanuell.github.io/eleicoes/web/ (demonstração com os dados
 fetch_live.py (TSE)  →  web/data/*.json  →  publish_loop.sh (git push)  →  Actions  →  GitHub Pages
 ```
 
-`fetch_live.py` consulta nacional, estados e exterior a cada 2 minutos e os municípios a cada 10, a no máximo 40 req/s (o limite do TSE é 100). `publish_loop.sh` faz commit e push a cada 2 minutos quando os dados mudam, e cada push publica o site pelo GitHub Actions. Não há servidor exposto.
+`fetch_live.py` consulta nacional, estados e exterior a cada 30 segundos e os municípios a cada 5 minutos, a no máximo 40 req/s (o limite do TSE é 100). `publish_loop.sh` faz commit e push assim que os dados mudam (no mínimo 45 s entre publicações), e cada push publica o site pelo GitHub Actions. Não há servidor exposto.
 
 O pipeline de coleta é adaptado de [lsampaiorocha/brazil-votes-2026](https://github.com/lsampaiorocha/brazil-votes-2026), de Leonardo Rocha (MIT). O front-end é novo.
 
@@ -37,7 +37,7 @@ cd web && python3 -m http.server 8000   # http://localhost:8000/?demo
 
 ## Coleta no dia 25
 
-`./rodar_coleta.sh [horas]` roda o coletor e a publicação por N horas (padrão 8) e encerra. Os dados são publicados a cada 2 minutos; cada push dispara o deploy do Pages (`.github/workflows/pages.yml`). Rode **em um lugar só por vez**:
+`./rodar_coleta.sh [horas]` roda o coletor e a publicação por N horas (padrão 8) e encerra. O TSE é consultado a cada 30 segundos e os dados são publicados assim que mudam; cada push dispara o deploy do Pages (`.github/workflows/pages.yml`). Rode **em um lugar só por vez**:
 
 1. **Seu computador (principal)**: por volta das 16h30, `./rodar_coleta.sh`. Deixe na tomada, com suspensão automática desligada.
 2. **GitHub Actions (reserva)**: Actions → Coleta do TSE → Run workflow. Dura no máximo 6 horas e pode ser disparado pelo celular.

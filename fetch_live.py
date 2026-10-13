@@ -37,8 +37,10 @@ STATES = [
     "mt", "pa", "pb", "pe", "pi", "pr", "rj", "rn", "ro", "rr", "rs", "sc",
     "se", "sp", "to",
 ]
-STATE_INTERVAL_SECONDS = 120
-MUNICIPALITY_INTERVAL_SECONDS = 600
+# Nacional/estados/exterior (~215 requisições, ~6 s) a cada 30 s e municípios
+# (~5.600, ~2,5 min) a cada 5 min: média de ~26 req/s, abaixo do teto de 40.
+STATE_INTERVAL_SECONDS = 30
+MUNICIPALITY_INTERVAL_SECONDS = 300
 HISTORY_MAX_POINTS = 500
 # O TSE bloqueia o IP por 10 minutos acima de 100 requisições/segundo.
 MAX_REQUESTS_PER_SECOND = 40
@@ -161,6 +163,21 @@ def fetch_many(areas: list[tuple[str, str]]) -> list[dict | None]:
         return list(pool.map(lambda area: fetch_result(*area), areas))
 
 
+def write_if_changed(path: Path, payload: dict) -> bool:
+    """Grava só se algo além do fetched_at mudou. Com consulta a cada 30 s, a
+    maioria dos ciclos traz o mesmo número do TSE; regravar faria o
+    publish_loop.sh publicar (e o Pages reconstruir) sem nada novo."""
+    try:
+        previous = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        previous = None
+    strip = lambda data: {k: v for k, v in data.items() if k != "fetched_at"}
+    if previous is not None and strip(previous) == strip(payload):
+        return False
+    write_json_atomically(path, payload)
+    return True
+
+
 def write_json_atomically(path: Path, payload: dict) -> None:
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
@@ -224,7 +241,7 @@ def update_states_and_abroad() -> None:
         if summed["sections_counted"] > national["sections_counted"]:
             national = summed
     fetched_at = datetime.now(BRASILIA).isoformat(timespec="seconds")
-    write_json_atomically(
+    changed = write_if_changed(
         DATA / "states.json",
         {
             "fetched_at": fetched_at,
@@ -237,7 +254,7 @@ def update_states_and_abroad() -> None:
             },
         },
     )
-    write_json_atomically(
+    write_if_changed(
         DATA / "abroad.json",
         {
             "fetched_at": fetched_at,
@@ -258,7 +275,7 @@ def update_states_and_abroad() -> None:
         },
     )
     append_history(national)
-    if national:
+    if changed:
         logger.info(
             "estados + exterior atualizados: %s de %s seções apuradas no país",
             f"{national['sections_counted']:,}",
@@ -286,7 +303,7 @@ def update_municipalities() -> None:
             "valid": result["valid"],
             **{number: votes_by_number.get(number, 0) for number in CANDIDATE_NUMBERS},
         }
-    write_json_atomically(
+    write_if_changed(
         DATA / "municipalities_2026.json",
         {
             "fetched_at": datetime.now(BRASILIA).isoformat(timespec="seconds"),

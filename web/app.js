@@ -16,7 +16,7 @@ async function detectarModo() {
   DATA_DIR = aoVivo ? "data" : "data-demo";
   document.getElementById("aviso").hidden = aoVivo;
 }
-const REFRESH_MS = 60_000;
+const REFRESH_MS = 20_000;  // barato: quando nada mudou, cada busca é um 304 vazio
 const C13 = "#e66767", C22 = "#3987e5", BASELINE = "#383835";
 // Tom pela margem de vantagem (pontos percentuais dos votos válidos): até 5,
 // 5–15, mais de 15. Cada tom mistura a cor do candidato com um cinza neutro de
@@ -803,7 +803,7 @@ async function refresh() {
     document.getElementById("live-text").textContent =
       DEMO ? "demonstração · dados do 1º turno (4/10)"
       : PRIMEIRO_TURNO ? "1º turno · resultado final (4/10)"
-      : `ao vivo · atualizado ${fetchedAt.toLocaleTimeString("pt-BR")}`;
+      : `ao vivo · TSE às ${(states.national.as_of || "").split(" ")[1] || fetchedAt.toLocaleTimeString("pt-BR")}`;
     liveEl.classList.toggle("on", !PRIMEIRO_TURNO);
 
     try {
