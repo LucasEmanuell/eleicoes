@@ -35,12 +35,39 @@ python3 build_demo.py ../brazil-votes-2026/web/data --historico-git ../brazil-vo
 cd web && python3 -m http.server 8000   # http://localhost:8000/?demo
 ```
 
-No dia da eleição:
+## Coleta no dia 25
 
-```bash
-python3 fetch_live.py          # coleta contínua (--once roda um ciclo só)
-./publish_loop.sh              # publica
-```
+`./rodar_coleta.sh [horas]` roda o coletor e a publicação por N horas (padrão 8) e encerra. Rode **em um lugar só por vez**:
+
+1. **VPS (principal)**, via cron. Não usa login do GitHub, só uma *deploy key* com acesso a este repositório:
+
+   ```bash
+   sudo apt install -y git python3-venv
+   ssh-keygen -t ed25519 -f ~/.ssh/eleicoes_deploy -N "" -C coleta-vps
+   cat ~/.ssh/eleicoes_deploy.pub   # cole em GitHub → Settings → Deploy keys, marcando "Allow write access"
+
+   cat >> ~/.ssh/config <<'EOF'
+   Host github-eleicoes
+     HostName github.com
+     User git
+     IdentityFile ~/.ssh/eleicoes_deploy
+     IdentitiesOnly yes
+   EOF
+
+   git clone git@github-eleicoes:LucasEmanuell/eleicoes.git ~/eleicoes && cd ~/eleicoes
+   git config user.name coleta-vps && git config user.email coleta-vps@users.noreply.github.com
+   python3 -m venv .venv && .venv/bin/pip install requests
+   ./rodar_coleta.sh 0.2   # teste de 12 minutos
+   ```
+
+   Agendamento (`crontab -e`). Confira o fuso com `timedatectl`: 16h30 de Brasília são 19h30 em UTC.
+
+   ```
+   30 19 25 10 * cd $HOME/eleicoes && ./rodar_coleta.sh 8 >> $HOME/coleta.log 2>&1
+   ```
+
+2. **GitHub Actions (reserva)**: Actions → Coleta do TSE → Run workflow. Dura no máximo 6 horas.
+3. **Seu computador**: `./rodar_coleta.sh`.
 
 ## Licença
 
