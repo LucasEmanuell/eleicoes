@@ -144,6 +144,32 @@ button.icon-btn:hover { color: var(--ink); border-color: var(--ink-muted); }
 .regiao-row .mini-track { grid-column: 1 / -1; height: 4px; background: var(--rule); border-radius: 3px; overflow: hidden; display: flex; }
 .regiao-row .mini-track i { display: block; height: 100%; }
 
+/* brasil: cartão, mapa, regiões */
+.status-badge { font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; display: inline-flex; align-items: center; gap: 6px; }
+.status-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-muted); }
+.status-badge.definido::before { background: var(--good); }
+.share-bar i.c22 { margin-left: auto; }
+.diff-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--ink-2); padding: 10px 0; border-top: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.diff-row strong { color: var(--ink); }
+.outros:empty, .diff-row:empty { display: none; }
+.outros { border-top: 1px solid var(--rule); padding: 6px 0; margin-bottom: 4px; }
+.outro-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 5px 0; font-size: 12.5px; }
+.outro-row .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.outro-row .partido { color: var(--ink-muted); font-size: 11.5px; margin-left: 6px; }
+.outro-row .pct { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.outros .resto { font-size: 11.5px; color: var(--ink-muted); margin: 4px 0; }
+.outros details summary { font-size: 12px; font-weight: 600; color: var(--ink-2); cursor: pointer; margin-top: 4px; }
+.outros details[open] summary { margin-bottom: 4px; }
+.totais { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; border-top: 1px solid var(--rule); padding: 12px 0 14px; }
+.totais .l { font-size: 11px; color: var(--ink-muted); }
+.totais .v { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.map-count { margin: 0 0 6px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-height: 1.3em; }
+.map-count b { font-weight: 800; }
+.uf-pct { font-size: 8.5px; font-weight: 600; fill: rgba(255,255,255,.8); text-anchor: middle; pointer-events: none; }
+.uf-outline { fill: none; stroke: var(--page); stroke-width: 1.1; pointer-events: none; }
+.map-tooltip .t-meta { font-size: 11px; color: var(--ink-muted); margin-bottom: 4px; }
+.map-tooltip .t-row span:last-child { font-variant-numeric: tabular-nums; }
+.regiao-row.exterior { border-top: 1px dashed var(--rule); }
 /* exterior */
 .layout-exterior { grid-template-columns: minmax(0,1fr) minmax(0,340px); }
 @media (max-width: 1080px) { .layout-exterior { grid-template-columns: minmax(0,1fr); } }
@@ -243,13 +269,19 @@ footer.credits a { text-decoration: underline; }
   <section id="view-brasil" role="tabpanel" aria-labelledby="tab-brasil">
     <div class="layout">
       <article class="panel" id="panel-stats">
-        <h2>Presidente · Brasil</h2>
+        <div class="panel-head">
+          <h2>Presidente · Brasil</h2>
+          <span class="status-badge" id="status-badge" hidden></span>
+        </div>
         <p class="headline" id="headline">Carregando resultado…</p>
         <p class="dek" id="dek"></p>
 
         <div class="candidates" id="candidates"></div>
         <div class="share-bar" id="share-bar"><div class="majority"></div></div>
         <div class="majority-label">linha tracejada = 50% dos votos válidos</div>
+        <div class="diff-row" id="diff-row"></div>
+        <div class="outros" id="outros"></div>
+        <div class="totais" id="totais"></div>
 
         <div class="progress-row">
           <span>Seções apuradas</span>
@@ -262,13 +294,19 @@ footer.credits a { text-decoration: underline; }
       </article>
 
       <article class="panel panel-map">
-        <h2>Mapa por estado</h2>
-        <div id="map-root" style="position:relative"></div>
-        <div class="map-legend">
-          <span class="key"><span class="swatch" style="background:var(--c13)"></span>Lula (PT)</span>
-          <span class="key"><span class="swatch" style="background:var(--c22)"></span>Flávio Bolsonaro (PL)</span>
+        <div class="panel-head">
+          <div class="segmented" role="group" aria-label="Divisão do mapa" id="map-nivel">
+            <button type="button" data-v="estados" aria-pressed="true">Estados</button>
+            <button type="button" data-v="municipios" aria-pressed="false">Municípios</button>
+          </div>
+          <div class="segmented" role="group" aria-label="O que o mapa mostra" id="map-modo">
+            <button type="button" data-v="vantagem" aria-pressed="true">Vantagem</button>
+            <button type="button" data-v="apurado" aria-pressed="false">Apurado</button>
+          </div>
         </div>
-        <div class="map-legend margin-legend"></div>
+        <p class="map-count" id="map-count"></p>
+        <div id="map-root" style="position:relative"></div>
+        <div id="map-legend"></div>
       </article>
 
       <aside class="panel" id="panel-regioes">
@@ -397,37 +435,70 @@ async function getJSON(path) {
   return res.json();
 }
 
-function top2(candidates) {
-  const sorted = [...candidates].sort((a, b) => b.votes - a.votes);
-  return [sorted.find(c => c.number === "13") || sorted[0], sorted.find(c => c.number === "22") || sorted[1]];
-}
-
 // ---------------- stat panel ----------------
+// Todas as porcentagens são sobre votos válidos (como o TSE divulga), nunca
+// só entre Lula e Flávio — no 1º turno os outros candidatos entram na conta.
+const displayName = c => CAND_NAME[c.number] || titleCase(c.name);
+const candColor = number => number === "13" ? C13 : number === "22" ? C22 : "var(--ink-2)";
+const fmtVotosExtenso = v => v >= 1e6
+  ? `${(v / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} milhões de votos`
+  : v >= 1e3 ? `${Math.round(v / 1e3).toLocaleString("pt-BR")} mil votos` : `${fmtInt(v)} votos`;
+const ranked = candidates => [...candidates].sort((a, b) => b.votes - a.votes);
+
 function renderStats(national) {
-  const [c13, c22] = top2(national.candidates);
-  const valid = national.valid || 1;
-  const pct13 = 100 * c13.votes / valid, pct22 = 100 * c22.votes / valid;
+  const valid = national.valid || 0;
+  const todos = ranked(national.candidates);
+  const c13 = todos.find(c => c.number === "13") || { number: "13", votes: 0 };
+  const c22 = todos.find(c => c.number === "22") || { number: "22", votes: 0 };
+  const pct = c => shareOf(c.votes, valid);
+  const [first, second] = todos;
+  const nome = c => `<span style="color:${candColor(c.number)}">${escapeHtml(displayName(c))}</span>`;
+  const apurado = national.sections_total ? 100 * national.sections_counted / national.sections_total : 0;
 
-  const lider = pct13 >= pct22 ? c13 : c22;
-  document.getElementById("headline").innerHTML =
-    `<span style="color:${pct13 >= pct22 ? C13 : C22}">${CAND_NAME[lider.number] || lider.name}</span> lidera a apuração`;
-  document.getElementById("dek").textContent =
-    national.as_of ? `Atualizado às ${national.as_of.split(" ")[1] || national.as_of}` : "";
+  let headline;
+  if (!valid) headline = "A apuração ainda não começou";
+  else if (national.decided && pct(first) > 50) headline = `${nome(first)} é eleito presidente`;
+  else if (national.decided) headline = `${nome(first)} e ${nome(second)} vão ao 2º turno`;
+  else headline = `${nome(first)} lidera a apuração`;
+  document.getElementById("headline").innerHTML = headline;
+  const [data, hora] = (national.as_of || "").split(" ");
+  document.getElementById("dek").textContent = national.as_of ? `Atualizado em ${data.slice(0, 5)} às ${hora}` : "";
 
-  document.getElementById("candidates").innerHTML = `
-    <div class="cand c13"><span class="name"><span class="swatch" style="background:${C13}"></span>${CAND_NAME["13"]} (PT)</span>
-      <span class="pct">${fmtPct(pct13)}</span><span class="votes">${fmtInt(c13.votes)} votos</span></div>
-    <div class="cand c22"><span class="name"><span class="swatch" style="background:${C22}"></span>${CAND_NAME["22"]} (PL)</span>
-      <span class="pct">${fmtPct(pct22)}</span><span class="votes">${fmtInt(c22.votes)} votos</span></div>`;
+  const badge = document.getElementById("status-badge");
+  badge.hidden = !valid;
+  badge.classList.toggle("definido", !!national.decided);
+  badge.textContent = national.decided ? "Resultado definido" : `Apurando · ${fmtPct(apurado)}`;
 
-  document.getElementById("share-bar").innerHTML = `
-    <i class="c13" style="width:${pct13}%"></i><i class="c22" style="width:${pct22}%"></i>
-    <div class="majority"></div>`;
+  document.getElementById("candidates").innerHTML = [c13, c22].map(c => `
+    <div class="cand c${c.number}"><span class="name"><span class="swatch" style="background:${candColor(c.number)}"></span>${CAND_NAME[c.number]} (${c.number === "13" ? "PT" : "PL"})</span>
+      <span class="pct">${fmtPct(pct(c))}</span><span class="votes">${fmtInt(c.votes)} votos</span></div>`).join("");
+  // Lula cresce da esquerda, Flávio da direita; o vão no meio é o voto dos outros candidatos.
+  document.getElementById("share-bar").innerHTML =
+    `<i class="c13" style="width:${pct(c13)}%"></i><i class="c22" style="width:${pct(c22)}%"></i><div class="majority"></div>`;
 
-  const pctApurado = national.sections_total ? 100 * national.sections_counted / national.sections_total : 0;
+  document.getElementById("diff-row").innerHTML = valid
+    ? `<span>Diferença</span><span><strong>${Math.abs(pct(c13) - pct(c22)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pontos</strong> · ${fmtVotosExtenso(Math.abs(c13.votes - c22.votes))}</span>`
+    : "";
+
+  const outros = todos.filter(c => c.number !== "13" && c.number !== "22" && c.votes > 0);
+  const linhaCand = c => `<div class="outro-row"><span class="nome">${escapeHtml(displayName(c))}<span class="partido">${escapeHtml(c.party || "")} ${c.number}</span></span><span class="pct">${fmtPct(pct(c))}</span></div>`;
+  const resto = outros.slice(3);
+  document.getElementById("outros").innerHTML = outros.length ? `
+    ${outros.slice(0, 3).map(linhaCand).join("")}
+    ${resto.length ? `<p class="resto">Mais ${resto.length} candidatura${resto.length > 1 ? "s" : ""} soma${resto.length > 1 ? "m" : ""} ${fmtPct(d3.sum(resto, pct))}</p>` : ""}
+    <details><summary>Todos os ${todos.length} candidatos</summary>${todos.map(linhaCand).join("")}</details>` : "";
+
+  const eleitorado = national.electorate_counted || national.electorate || 0;
+  const tile = (l, v) => `<div><div class="l">${l}</div><div class="v">${v}</div></div>`;
+  document.getElementById("totais").innerHTML = valid ? [
+    tile("Votos válidos", fmtInt(valid)),
+    tile("Comparecimento", fmtPct(shareOf(national.turnout || 0, eleitorado))),
+    tile("Brancos e nulos", fmtPct(shareOf((national.blank || 0) + (national.null || 0), national.turnout || 0))),
+  ].join("") : "";
+
   document.getElementById("sections-label").textContent =
-    `${fmtInt(national.sections_counted)} de ${fmtInt(national.sections_total)} (${fmtPct(pctApurado)})`;
-  document.getElementById("progress-fill").style.width = pctApurado + "%";
+    `${fmtInt(national.sections_counted)} de ${fmtInt(national.sections_total)} (${fmtPct(apurado)})`;
+  document.getElementById("progress-fill").style.width = apurado + "%";
 }
 
 // ---------------- line chart ----------------
@@ -483,28 +554,25 @@ function renderChart(pontos) {
 }
 
 // ---------------- regioes ----------------
-function renderRegioes(statesData) {
-  const html = Object.entries(REGIOES).map(([nome, ufs]) => {
-    let v13 = 0, v22 = 0;
-    for (const uf of ufs) {
-      const r = statesData[uf];
-      if (!r) continue;
-      const by = Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
-      v13 += by["13"] || 0; v22 += by["22"] || 0;
-    }
-    const total = v13 + v22 || 1;
-    const p13 = 100 * v13 / total, p22 = 100 * v22 / total;
-    const liderCor = p13 >= p22 ? C13 : C22;
-    const liderNome = p13 >= p22 ? "Lula" : "Flávio";
-    const liderPct = Math.max(p13, p22);
-    return `<div class="regiao-row">
+function renderRegioes(states) {
+  const linha = (nome, t, extra = "") => {
+    const p13 = shareOf(t["13"], t.valid), p22 = shareOf(t["22"], t.valid);
+    const lula = t["13"] >= t["22"];
+    return `<div class="regiao-row${extra}">
       <span class="nome">${nome}</span>
-      <span class="lider"><span class="swatch" style="background:${liderCor}"></span>${liderNome}</span>
-      <span class="pct">${fmtPct(liderPct)}</span>
-      <div class="mini-track"><i style="background:${C13};width:${p13}%"></i><i style="background:${C22};width:${p22}%"></i></div>
+      <span class="lider"><span class="swatch" style="background:${lula ? C13 : C22}"></span>${lula ? "Lula" : "Flávio"}</span>
+      <span class="pct">${t.valid ? fmtPct(lula ? p13 : p22) : "—"}</span>
+      <div class="mini-track"><i style="background:${C13};width:${p13}%"></i><i style="background:${C22};width:${p22}%;margin-left:auto"></i></div>
     </div>`;
-  }).join("");
-  document.getElementById("regioes-list").innerHTML = html;
+  };
+  const soma = rs => {
+    const t = { valid: 0, "13": 0, "22": 0 };
+    for (const r of rs) { if (!r) continue; const by = votesOf(r); t.valid += r.valid || 0; t["13"] += by["13"] || 0; t["22"] += by["22"] || 0; }
+    return t;
+  };
+  document.getElementById("regioes-list").innerHTML =
+    Object.entries(REGIOES).map(([nome, ufs]) => linha(nome, soma(ufs.map(uf => states.states[uf])))).join("") +
+    (states.abroad ? linha("Exterior", soma([states.abroad]), " exterior") : "");
 }
 
 // ---------------- correção de winding do IBGE ----------------
@@ -523,53 +591,171 @@ function fixWinding(geojson) {
 }
 
 // ---------------- mapa por estado ----------------
-let mapBuilt = false, mapPaths, mapProjection;
-function buildMap(geojson) {
+// ---------------- mapa do Brasil (estados ou municípios) ----------------
+const UF_NOME = {
+  AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia", CE: "Ceará", DF: "Distrito Federal",
+  ES: "Espírito Santo", GO: "Goiás", MA: "Maranhão", MT: "Mato Grosso", MS: "Mato Grosso do Sul", MG: "Minas Gerais",
+  PA: "Pará", PB: "Paraíba", PR: "Paraná", PE: "Pernambuco", PI: "Piauí", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte",
+  RS: "Rio Grande do Sul", RO: "Rondônia", RR: "Roraima", SC: "Santa Catarina", SP: "São Paulo", SE: "Sergipe", TO: "Tocantins",
+};
+// % de seções apuradas: 5 faixas de cinza, do escuro (nada) ao claro (tudo).
+const APURADO_BREAKS = [0.25, 0.5, 0.75, 0.999];
+const APURADO_COLORS = ["#2f2f2c", "#4b4a46", "#6c6b66", "#94938c", "#d6d4cc"];
+const apuradoColor = d3.scaleThreshold().domain(APURADO_BREAKS).range(APURADO_COLORS);
+const fracApurada = r => r && r.sections_total ? r.sections_counted / r.sections_total : 0;
+
+// Malha de municípios e lookup TSE↔IBGE: carregados uma vez, só quando alguém usa
+// (o mapa de municípios ou a aba Virada), e compartilhados entre os dois.
+let muniGeoP = null, lookupP = null;
+const loadLookup = () => lookupP ||= getJSON("data/municipality_lookup.json");
+const loadMuniGeo = () => muniGeoP ||= Promise.all([getJSON("geo/municipalities.geojson").then(fixWinding), loadLookup()])
+  .then(([geo, lookup]) => {
+    // O geojson do IBGE usa código do IBGE (7 dígitos); os dados de votação
+    // usam código do TSE (5 dígitos) — precisa do lookup pra converter.
+    const ibgeToTse = {};
+    for (const [tse, place] of Object.entries(lookup)) ibgeToTse[place.ibge] = tse;
+    for (const f of geo.features) f.tse = ibgeToTse[String(f.properties.codarea)];
+    return geo;
+  });
+
+const mapa = { nivel: "estados", modo: "vantagem", states: null, munis: null, lookup: null };
+let mapBuilt = false;
+
+function buildMap(ufGeo) {
   const root = document.getElementById("map-root");
-  const w = root.clientWidth || 600, h = w * 0.78;
   root.innerHTML = "";
-  let tooltip = document.createElement("div");
+  const w = root.clientWidth || 600;
+  const projection = d3.geoMercator().fitWidth(w, ufGeo);
+  const path = d3.geoPath(projection);
+  const h = Math.ceil(path.bounds(ufGeo)[1][1]);
+  const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
+  const tooltip = document.createElement("div");
   tooltip.className = "map-tooltip";
   root.appendChild(tooltip);
+  const showTip = (event, html) => {
+    tooltip.innerHTML = html;
+    const [px, py] = d3.pointer(event, root);
+    const flip = px > root.clientWidth - 200;
+    tooltip.style.left = (flip ? px - 14 - tooltip.offsetWidth : px + 14) + "px";
+    tooltip.style.top = py + "px";
+    tooltip.style.opacity = 1;
+  };
+  const hideTip = () => { tooltip.style.opacity = 0; };
 
-  mapProjection = d3.geoMercator().fitSize([w, h], geojson);
-  const path = d3.geoPath(mapProjection);
-  const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
-  const g = svg.append("g");
-
-  mapPaths = g.selectAll("path.uf").data(geojson.features).join("path")
-    .attr("class", "uf").attr("d", path).attr("fill", BASELINE)
-    .on("mousemove", function (event, d) {
-      tooltip.style.opacity = 1;
-      const [mx, my] = d3.pointer(event, root);
-      tooltip.style.left = mx + 14 + "px";
-      tooltip.style.top = my + "px";
-      tooltip.dataset.uf = d.properties.uf;
-      this.dispatchEvent(new CustomEvent("uf-hover", { bubbles: true, detail: d.properties.uf }));
-    })
-    .on("mouseleave", () => { tooltip.style.opacity = 0; });
-
-  g.selectAll("text.uf-label").data(geojson.features).join("text")
-    .attr("class", "uf-label")
-    .attr("x", d => path.centroid(d)[0]).attr("y", d => path.centroid(d)[1])
-    .text(d => d.properties.uf);
-
-  root.addEventListener("uf-hover", (e) => {
-    const r = window.__lastStates && window.__lastStates[e.detail];
-    if (!r) return;
-    const by = Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
-    const total = (by["13"] || 0) + (by["22"] || 0) || 1;
-    const p13 = 100 * (by["13"] || 0) / total, p22 = 100 * (by["22"] || 0) / total;
-    tooltip.innerHTML = `<div class="t-name">${e.detail}</div>
-      <div class="t-row"><span style="color:${C13}">Lula</span><span>${fmtPct(p13)}</span></div>
-      <div class="t-row"><span style="color:${C22}">Flávio</span><span>${fmtPct(p22)}</span></div>`;
+  Object.assign(mapa, {
+    path, showTip, hideTip,
+    gMuni: svg.append("g"),
+    ufPaths: svg.append("g").selectAll("path").data(ufGeo.features).join("path")
+      .attr("class", "uf").attr("d", path).attr("fill", BASELINE)
+      .on("mousemove", (event, d) => showTip(event, tooltipEstado(d.properties.uf)))
+      .on("mouseleave", hideTip),
+    outline: svg.append("path").datum(ufGeo).attr("class", "uf-outline").attr("d", path),
+    muniPaths: null,
   });
+  const labels = svg.append("g").selectAll("g").data(ufGeo.features).join("g")
+    .attr("transform", d => `translate(${path.centroid(d)})`);
+  labels.append("text").attr("class", "uf-label").attr("y", -4).text(d => d.properties.uf);
+  mapa.ufPct = labels.append("text").attr("class", "uf-pct").attr("y", 7);
   mapBuilt = true;
+  paintMap();
 }
 
-function renderMarginLegend() {
-  document.querySelectorAll(".margin-legend").forEach(el => { el.innerHTML = marginLegendHtml(); });
+function linhasTooltip(candidates, valid, extraOutros = 0) {
+  const top = ranked(candidates).slice(0, 3);
+  const outros = valid - d3.sum(top, c => c.votes);
+  return top.map(c => `<div class="t-row"><span style="color:${candColor(c.number)}">${escapeHtml(displayName(c))}</span><span>${fmtPct(shareOf(c.votes, valid))}</span></div>`).join("") +
+    (outros > 0 ? `<div class="t-row"><span>Outros</span><span>${fmtPct(shareOf(outros, valid))}</span></div>` : "");
 }
+
+function tooltipEstado(uf) {
+  const r = mapa.states && mapa.states[uf];
+  const cab = `<div class="t-name">${UF_NOME[uf] || uf}</div>`;
+  if (!r) return cab;
+  return cab + `<div class="t-meta">${fmtPct(100 * fracApurada(r))} apurado · ${fmtMil(r.electorate || 0)} de eleitores</div>` +
+    (r.valid ? linhasTooltip(r.candidates, r.valid) : `<div class="c">Sem votos ainda</div>`);
+}
+
+function tooltipMunicipio(code) {
+  const place = mapa.lookup && mapa.lookup[code];
+  const m = mapa.munis && mapa.munis[code];
+  const cab = `<div class="t-name">${place ? `${escapeHtml(titleCase(place.name))} <span class="c">· ${place.uf}</span>` : "Município"}</div>`;
+  if (!m) return cab + `<div class="c">Sem dados</div>`;
+  // O arquivo de municípios só traz Lula e Flávio; o resto dos válidos vira "Outros".
+  const cands = [{ number: "13", votes: m["13"] || 0 }, { number: "22", votes: m["22"] || 0 }];
+  return cab + `<div class="t-meta">${fmtPct(100 * fracApurada(m))} apurado · ${fmtInt(m.electorate || 0)} eleitores</div>` +
+    (m.valid ? linhasTooltip(cands, m.valid) : `<div class="c">Sem votos ainda</div>`);
+}
+
+async function ensureMunicipios() {
+  const [geo, lookup, dados] = await Promise.all([
+    loadMuniGeo(), loadLookup(), getJSON(`${DATA_DIR}/municipalities_2026.json`),
+  ]);
+  mapa.lookup = lookup;
+  mapa.munis = dados.municipalities;
+  if (!mapa.muniPaths && mapBuilt) {
+    mapa.muniPaths = mapa.gMuni.selectAll("path").data(geo.features).join("path")
+      .attr("class", "muni").attr("d", mapa.path)
+      .on("mousemove", (event, f) => mapa.showTip(event, tooltipMunicipio(f.tse)))
+      .on("mouseleave", mapa.hideTip);
+  }
+  paintMap();
+}
+
+function fillPorResultado(v13, v22, valid, frac) {
+  if (mapa.modo === "apurado") return apuradoColor(frac);
+  return valid ? leaderShade(v13, v22, valid) : BASELINE;
+}
+
+function paintMap() {
+  if (!mapBuilt || !mapa.states) return;
+  const municipios = mapa.nivel === "municipios";
+  mapa.ufPaths.style("display", municipios ? "none" : null).attr("fill", d => {
+    const r = mapa.states[d.properties.uf];
+    if (!r) return BASELINE;
+    const by = votesOf(r);
+    return fillPorResultado(by["13"] || 0, by["22"] || 0, r.valid, fracApurada(r));
+  });
+  if (mapa.muniPaths) {
+    mapa.gMuni.style("display", municipios ? null : "none");
+    mapa.muniPaths.attr("fill", f => {
+      const m = mapa.munis && mapa.munis[f.tse];
+      return m ? fillPorResultado(m["13"] || 0, m["22"] || 0, m.valid, fracApurada(m)) : BASELINE;
+    });
+  }
+  // Rótulo de cada estado: % do líder (vantagem) ou % apurado.
+  mapa.ufPct.text(d => {
+    const r = mapa.states[d.properties.uf];
+    if (!r) return "";
+    if (mapa.modo === "apurado") return fmtPct(100 * fracApurada(r)).replace(",0%", "%");
+    if (!r.valid) return "";
+    return Math.round(shareOf(ranked(r.candidates)[0].votes, r.valid)) + "%";
+  });
+
+  // Contagem e legenda.
+  const count = document.getElementById("map-count");
+  if (mapa.modo === "apurado") {
+    const lista = municipios ? Object.values(mapa.munis || {}) : Object.values(mapa.states);
+    const completos = lista.filter(r => fracApurada(r) >= 0.999).length;
+    count.innerHTML = `<b>${fmtInt(completos)}</b> de ${fmtInt(lista.length)} ${municipios ? "municípios" : "estados"} com 100% das seções apuradas`;
+  } else {
+    const lista = municipios
+      ? Object.values(mapa.munis || {}).map(m => [m["13"] || 0, m["22"] || 0])
+      : Object.values(mapa.states).map(r => { const b = votesOf(r); return [b["13"] || 0, b["22"] || 0]; });
+    const pl = lista.filter(([a, b]) => b > a).length, pt = lista.filter(([a, b]) => a > b).length;
+    const sem = lista.length - pl - pt;
+    count.innerHTML = (municipios && !mapa.munis) ? "Carregando municípios…" :
+      `<span style="color:${C22}">PL</span> lidera em <b>${fmtInt(pl)}</b> · <span style="color:${C13}">PT</span> em <b>${fmtInt(pt)}</b> ${municipios ? "municípios" : "estados"}` +
+      (sem ? ` · ${fmtInt(sem)} sem votos ou empatados` : "");
+  }
+  document.getElementById("map-legend").innerHTML = mapa.modo === "apurado"
+    ? `<div class="map-legend"><span class="key">Seções apuradas</span>
+         ${APURADO_COLORS.map((c, i) => `<span class="key"><span class="swatch" style="background:${c}"></span>${["< 25%", "25–50%", "50–75%", "75–99%", "100%"][i]}</span>`).join("")}</div>`
+    : `<div class="map-legend">
+         <span class="key"><span class="swatch" style="background:var(--c13)"></span>Lula (PT)</span>
+         <span class="key"><span class="swatch" style="background:var(--c22)"></span>Flávio Bolsonaro (PL)</span>
+       </div><div class="map-legend">${marginLegendHtml()}</div>`;
+}
+
 function marginLegendHtml() {
   const chip = step =>
     `<span class="swatch" style="background:linear-gradient(90deg, ${SHADES["13"][step]} 50%, ${SHADES["22"][step]} 50%)"></span>`;
@@ -578,17 +764,22 @@ function marginLegendHtml() {
      <span class="key">${chip(1)}5–15 pts</span>
      <span class="key">${chip(2)}mais de 15 pts</span>`;
 }
-renderMarginLegend();
+
+document.querySelectorAll(".margin-legend").forEach(el => { el.innerHTML = marginLegendHtml(); });
 
 function updateMapColors(statesData) {
-  window.__lastStates = statesData;
-  if (!mapPaths) return;
-  mapPaths.attr("fill", d => {
-    const r = statesData[d.properties.uf];
-    if (!r) return BASELINE;
-    const by = votesOf(r);
-    return leaderShade(by["13"] || 0, by["22"] || 0, r.valid);
-  });
+  mapa.states = statesData;
+  paintMap();
+  if (mapa.nivel === "municipios") ensureMunicipios();
+}
+
+for (const [grupo, chave] of [["map-nivel", "nivel"], ["map-modo", "modo"]]) {
+  document.querySelectorAll(`#${grupo} button`).forEach(btn => btn.addEventListener("click", () => {
+    mapa[chave] = btn.dataset.v;
+    document.querySelectorAll(`#${grupo} button`).forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+    paintMap();
+    if (mapa.nivel === "municipios") ensureMunicipios();
+  }));
 }
 
 // ---------------- exterior ----------------
@@ -795,16 +986,11 @@ function somaVirada(linhas) {
 
 async function setupVirada() {
   const [geo, ufGeo, base, lookup] = await Promise.all([
-    getJSON("geo/municipalities.geojson").then(fixWinding),
+    loadMuniGeo(),
     getJSON("geo/states.geojson").then(fixWinding),
     getJSON(VR_BASE.file),
-    getJSON("data/municipality_lookup.json"),
+    loadLookup(),
   ]);
-  // O geojson do IBGE usa código do IBGE (7 dígitos); os dados de votação
-  // usam código do TSE (5 dígitos) — precisa do lookup pra converter.
-  const ibgeToTse = {};
-  for (const [tse, place] of Object.entries(lookup)) ibgeToTse[place.ibge] = tse;
-  for (const f of geo.features) f.tse = ibgeToTse[String(f.properties.codarea)];
 
   const root = document.getElementById("virada-map-root");
   const w = root.clientWidth || 800;
@@ -991,7 +1177,7 @@ async function refresh() {
       buildMap(geo);
     }
     renderStats(states.national);
-    renderRegioes(states.states);
+    renderRegioes(states);
     updateMapColors(states.states);
     const liveEl = document.getElementById("live-indicator");
     const fetchedAt = new Date(states.fetched_at);
