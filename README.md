@@ -2,7 +2,9 @@
 
 Painel não-oficial da eleição presidencial de 2026, com dados do TSE.
 
-Site: https://lucasemanuell.github.io/eleicoes/web/ (demonstração com os dados do 1º turno: [`?demo`](https://lucasemanuell.github.io/eleicoes/web/?demo))
+Site: https://lucasemanuell.github.io/eleicoes/
+
+Até o 2º turno ter os primeiros votos (25/10, a partir das 17h), o site mostra o resultado do 1º turno e troca sozinho para o modo ao vivo. A demonstração com os dados do 1º turno fica em [`?demo`](https://lucasemanuell.github.io/eleicoes/?demo).
 
 ## Abas
 
@@ -16,7 +18,7 @@ Site: https://lucasemanuell.github.io/eleicoes/web/ (demonstração com os dados
 fetch_live.py (TSE)  →  web/data/*.json  →  publish_loop.sh (git push)  →  Actions  →  GitHub Pages
 ```
 
-`fetch_live.py` consulta nacional, estados e exterior a cada 30 segundos e os municípios a cada 5 minutos, a no máximo 40 req/s (o limite do TSE é 100). `publish_loop.sh` faz commit e push assim que os dados mudam (no mínimo 45 s entre publicações), e cada push publica o site pelo GitHub Actions. Não há servidor exposto.
+`fetch_live.py` consulta o TSE (eleição `6258`, o 2º turno presidencial; constante `ELECTION_CODE`) a cada 30 segundos para nacional, estados e exterior e os municípios a cada 5 minutos, a no máximo 40 req/s (o limite do TSE é 100). `publish_loop.sh` faz commit e push assim que os dados mudam (no mínimo 45 s entre publicações), e cada push publica o site pelo GitHub Actions. Não há servidor exposto.
 
 O pipeline de coleta é adaptado de [lsampaiorocha/brazil-votes-2026](https://github.com/lsampaiorocha/brazil-votes-2026), de Leonardo Rocha (MIT). O front-end é novo.
 
@@ -33,6 +35,8 @@ git clone https://github.com/lsampaiorocha/brazil-votes-2026 ../brazil-votes-202
 python3 build_demo.py ../brazil-votes-2026/web/data --historico-git ../brazil-votes-2026
 
 cd web && python3 -m http.server 8000   # http://localhost:8000/?demo
+
+python3 -m pytest tests/                 # testes do coletor
 ```
 
 ## Coleta no dia 25
