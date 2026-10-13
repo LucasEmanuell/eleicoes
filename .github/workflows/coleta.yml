@@ -24,6 +24,7 @@ jobs:
       - run: |
           git config user.name "coleta-tse"
           git config user.email "coleta-tse@users.noreply.github.com"
-      - run: ./rodar_coleta.sh "${{ inputs.horas }}"
+      - run: ./rodar_coleta.sh "$HORAS"
         env:
+          HORAS: ${{ inputs.horas }}  # via env, nunca interpolado direto no shell
           TZ: America/Sao_Paulo
