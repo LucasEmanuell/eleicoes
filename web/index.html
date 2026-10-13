@@ -208,6 +208,7 @@ footer.credits a { text-decoration: underline; }
           <span class="key"><span class="swatch" style="background:var(--c13)"></span>Lula (PT)</span>
           <span class="key"><span class="swatch" style="background:var(--c22)"></span>Flávio Bolsonaro (PL)</span>
         </div>
+        <div class="map-legend" id="margin-legend"></div>
       </article>
 
       <aside class="panel" id="panel-regioes">
@@ -263,6 +264,13 @@ const DEMO = new URLSearchParams(location.search).has("demo");
 const DATA_DIR = DEMO ? "data-demo" : "data";
 const REFRESH_MS = 60_000;
 const C13 = "#e66767", C22 = "#3987e5", BASELINE = "#383835";
+// Tom do estado pela margem de vantagem (pontos percentuais dos votos válidos):
+// < 5, 5–15, > 15. Mistura a cor do candidato com o fundo do painel — quanto
+// mais apertada a disputa, mais apagado.
+const PANEL_BG = "#1a1a19";
+const MARGIN_STRENGTHS = [0.45, 0.72, 1];
+const shade = (color, strength) => d3.interpolateRgb(PANEL_BG, color)(strength);
+const marginStrength = margin => margin < 5 ? MARGIN_STRENGTHS[0] : margin < 15 ? MARGIN_STRENGTHS[1] : MARGIN_STRENGTHS[2];
 const CAND_NAME = { "13": "Lula", "22": "Flávio Bolsonaro" };
 
 const REGIOES = {
@@ -445,6 +453,17 @@ function buildMap(geojson) {
   mapBuilt = true;
 }
 
+function renderMarginLegend() {
+  const chip = strength =>
+    `<span class="swatch" style="background:linear-gradient(90deg, ${shade(C13, strength)} 50%, ${shade(C22, strength)} 50%)"></span>`;
+  document.getElementById("margin-legend").innerHTML =
+    `<span class="key">Vantagem</span>
+     <span class="key">${chip(MARGIN_STRENGTHS[0])}até 5 pts</span>
+     <span class="key">${chip(MARGIN_STRENGTHS[1])}5–15 pts</span>
+     <span class="key">${chip(MARGIN_STRENGTHS[2])}mais de 15 pts</span>`;
+}
+renderMarginLegend();
+
 function updateMapColors(statesData) {
   window.__lastStates = statesData;
   if (!mapPaths) return;
@@ -454,7 +473,9 @@ function updateMapColors(statesData) {
     const by = Object.fromEntries(r.candidates.map(c => [c.number, c.votes]));
     const v13 = by["13"] || 0, v22 = by["22"] || 0;
     if (v13 === 0 && v22 === 0) return BASELINE;
-    return v13 >= v22 ? C13 : C22;
+    const valid = r.valid || v13 + v22;
+    const margin = 100 * Math.abs(v13 - v22) / valid;
+    return shade(v13 >= v22 ? C13 : C22, marginStrength(margin));
   });
 }
 
