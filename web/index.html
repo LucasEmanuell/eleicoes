@@ -172,6 +172,48 @@ button.icon-btn:hover { color: var(--ink); border-color: var(--ink-muted); }
   .city-row .n, .city-row .mini-track { display: none; }
 }
 
+/* virada */
+.kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 1080px) { .kpi-row { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.kpi .l { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+.kpi .v { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.kpi .s { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.panel-head h2 { margin: 0; }
+.segmented { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+.segmented button { font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-muted); background: none; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.segmented button[aria-pressed="true"] { background: var(--rule); color: var(--ink); }
+.muni { stroke: none; }
+.muni:hover { stroke: var(--ink); stroke-width: 1; }
+.uf-borders { fill: none; stroke: var(--page); stroke-width: 1.2; pointer-events: none; }
+.legend-ramp { display: inline-flex; gap: 2px; }
+.legend-ramp span { width: 22px; height: 10px; border-radius: 2px; }
+.legend-ramp-labels { display: inline-flex; gap: 2px; font-size: 10px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.uf-bars svg { display: block; width: 100%; height: auto; }
+.uf-bars text { font-size: 10.5px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+.uf-bars .uf-name { font-weight: 700; fill: var(--ink-muted); }
+.uf-bars .zero { stroke: var(--ink-muted); stroke-width: 1; }
+.vr-lists { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 1080px) { .vr-lists { grid-template-columns: minmax(0,1fr); } }
+.moves { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+@media (max-width: 640px) { .moves { grid-template-columns: minmax(0,1fr); } }
+.moves h3 { margin: 0 0 6px; font-size: 12px; font-weight: 700; }
+.move-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 12.5px; }
+.move-row:last-child { border-bottom: 0; }
+.move-row .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.move-row .n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.move-row .s { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.move-row .c { color: var(--ink-muted); font-weight: 400; }
+.flip-tag { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; color: var(--page); }
+.empty-msg-html { color: var(--ink-muted); font-size: 12.5px; }
+.nota { margin: 16px 2px 0; font-size: 11.5px; line-height: 1.6; color: var(--ink-muted); max-width: 110ch; }
+.map-tooltip table { border-collapse: collapse; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.map-tooltip td, .map-tooltip th { padding: 1px 6px 1px 0; text-align: right; font-weight: 400; color: var(--ink-2); }
+.map-tooltip th { color: var(--ink-muted); font-size: 10.5px; }
+.map-tooltip td:first-child, .map-tooltip th:first-child { text-align: left; }
+.map-tooltip .t-swing { margin-top: 4px; font-weight: 700; }
+
 footer.credits { margin-top: 28px; color: var(--ink-muted); font-size: 11.5px; line-height: 1.6; }
 footer.credits a { text-decoration: underline; }
 
@@ -268,16 +310,39 @@ footer.credits a { text-decoration: underline; }
   </section>
 
   <section id="view-virada" role="tabpanel" aria-labelledby="tab-virada" hidden>
-    <article class="panel panel-map">
-      <h2>Virada por município desde o 1º turno de 2022</h2>
-      <p class="dek">Comparação do % de votos válidos de cada candidato por município, 2022 (1º turno) → 2026. Município aparece quando tem pelo menos 90% das seções apuradas.</p>
-      <div id="virada-map-root" style="position:relative"></div>
-      <div class="map-legend">
-        <span class="key"><span class="swatch" style="background:var(--c22)"></span>Avançou PL</span>
-        <span class="key"><span class="swatch" style="background:var(--baseline)"></span>Estável</span>
-        <span class="key"><span class="swatch" style="background:var(--c13)"></span>Avançou PT</span>
-      </div>
-    </article>
+    <div class="kpi-row" id="vr-kpis"></div>
+    <div class="layout layout-exterior">
+      <article class="panel panel-map">
+        <div class="panel-head">
+          <h2>Mapa por município</h2>
+          <div class="segmented" role="group" aria-label="O que o mapa mostra">
+            <button type="button" data-modo="margem" aria-pressed="true">Variação da margem</button>
+            <button type="button" data-modo="virou" aria-pressed="false">Quem virou</button>
+          </div>
+        </div>
+        <p class="dek" id="vr-dek"></p>
+        <div id="virada-map-root" style="position:relative"></div>
+        <div class="map-legend" id="vr-legend"></div>
+      </article>
+      <aside class="panel">
+        <h2>Por estado</h2>
+        <p class="dek">Variação da margem PL − PT desde 2022, em pontos.</p>
+        <div id="vr-ufs"></div>
+      </aside>
+    </div>
+    <div class="vr-lists">
+      <article class="panel">
+        <h2>Onde a mudança pesou mais</h2>
+        <p class="dek">Votos de margem ganhos por cada lado: variação da margem × votos válidos do município. Cidade grande pesa mais que cidade pequena com variação grande.</p>
+        <div class="moves" id="vr-impacto"></div>
+      </article>
+      <article class="panel">
+        <h2>Maiores cidades que viraram</h2>
+        <p class="dek">Municípios onde o candidato que liderava em 2022 não lidera mais, por eleitorado.</p>
+        <div id="vr-viradas"></div>
+      </article>
+    </div>
+    <p class="nota" id="vr-nota"></p>
   </section>
 </main>
 
@@ -659,40 +724,250 @@ async function renderExterior(abroadData) {
 }
 
 // ---------------- virada ----------------
-let viradaBuilt = false;
-async function renderVirada() {
-  if (viradaBuilt) return;
-  viradaBuilt = true;
-  const [geo, atual, base, lookup] = await Promise.all([
+// Base de comparação: o 2º turno de 2026 é comparado com o 2º turno de 2022
+// (Lula × Jair); na demo, que usa o 1º turno de 2026, com o 1º de 2022.
+// Comparar turnos diferentes faria os dois parecerem crescer só porque os
+// votos de terceiros somem no 2º turno.
+const VR_BASE = DEMO
+  ? { file: "data/municipalities_2022.json", label: "1º turno de 2022", agora: "1º turno de 2026" }
+  : { file: "data/municipalities_2022_t2.json", label: "2º turno de 2022", agora: "2º turno de 2026" };
+const MIN_APURADO = 0.9;  // parcial cedo é enviesado; só compara município com ≥ 90% das seções
+// Variação da margem PL − PT em pontos: 7 faixas. Cada lado tem matiz fixo e
+// luminosidade crescente (validado: ΔL ≥ 0,06 entre degraus; vermelho e azul
+// do mesmo degrau com ΔE ≥ 15, ≥ 12 pra daltonismo). Centro cinza = estável.
+const SWING_BREAKS = [-20, -10, -3, 3, 10, 20];
+const SWING_COLORS = ["#ed6868", "#c05b5a", "#954e4d", "#4d4d4d", "#3f689b", "#4580ca", "#4999fb"];
+const swingColor = d3.scaleThreshold().domain(SWING_BREAKS).range(SWING_COLORS);
+const FLIP_COLORS = { "22": "#4999fb", "13": "#ed6868", held: "#2e2e2c" };
+
+const fmtPts = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmtMil = v => Math.abs(v) >= 1e6
+  ? (v / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mi"
+  : Math.abs(v) >= 1e3 ? Math.round(v / 1e3).toLocaleString("pt-BR") + " mil" : fmtInt(Math.round(v));
+const PREP = new Set(["DE", "DA", "DO", "DAS", "DOS", "E", "D'"]);
+const titleCase = s => s.toLowerCase().split(" ").map((w, i) =>
+  i > 0 && PREP.has(w.toUpperCase()) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+const sideOf = margin => margin > 0 ? "22" : margin < 0 ? "13" : null;  // margem = PL − PT
+const sideName = side => side === "22" ? "PL" : "PT";
+// Margem como "PL +4,2" / "PT +9,5" (pontos, não %); colorida opcionalmente.
+const margemTxt = (m, colorir = false) => {
+  if (Math.abs(m) < 0.05) return "empate";
+  const lado = m > 0 ? "22" : "13";
+  const nome = colorir ? `<span style="color:${lado === "22" ? C22 : C13}">${sideName(lado)}</span>` : sideName(lado);
+  return `${nome} ${fmtPts(Math.abs(m))}`;
+};
+
+let vr = null;  // estado da aba: geometria, base 2022, lookup, último cálculo, modo do mapa
+let vrSetup = null;  // promessa da montagem, pra dois cliques seguidos não montarem o mapa duas vezes
+
+// Compara cada município apurado com ele mesmo em 2022.
+function computeVirada(atual) {
+  const linhas = [];
+  let aguardando = 0;
+  for (const [code, now] of Object.entries(atual.municipalities)) {
+    const was = vr.base[code], place = vr.lookup[code];
+    if (!was || !place) continue;  // ex.: Boa Esperança do Norte (MT) não existia em 2022
+    if (!now.sections_total || now.sections_counted / now.sections_total < MIN_APURADO || !now.valid) { aguardando++; continue; }
+    const s13 = shareOf(now["13"], now.valid), s22 = shareOf(now["22"], now.valid);
+    const w13 = shareOf(was["13"], was.valid), w22 = shareOf(was["22"], was.valid);
+    const margem = s22 - s13, margemAntes = w22 - w13;
+    linhas.push({
+      code, place, now, was, s13, s22, w13, w22, margem, margemAntes,
+      swing: margem - margemAntes,
+      votosMargem: (margem - margemAntes) / 100 * now.valid,
+      antes: sideOf(margemAntes), depois: sideOf(margem),
+    });
+  }
+  for (const l of linhas) l.virou = l.antes && l.depois && l.antes !== l.depois;
+  return { linhas, aguardando, porCodigo: new Map(linhas.map(l => [l.code, l])) };
+}
+
+// Soma um conjunto de municípios (nacional ou por UF), sempre os mesmos lugares nos dois anos.
+function somaVirada(linhas) {
+  const t = { v: 0, n13: 0, n22: 0, wv: 0, w13: 0, w22: 0, eleitorado: 0 };
+  for (const l of linhas) {
+    t.v += l.now.valid; t.n13 += l.now["13"]; t.n22 += l.now["22"];
+    t.wv += l.was.valid; t.w13 += l.was["13"]; t.w22 += l.was["22"]; t.eleitorado += l.now.electorate || 0;
+  }
+  const s13 = shareOf(t.n13, t.v), s22 = shareOf(t.n22, t.v), w13 = shareOf(t.w13, t.wv), w22 = shareOf(t.w22, t.wv);
+  return { ...t, s13, s22, w13, w22, margem: s22 - s13, margemAntes: w22 - w13, swing: (s22 - s13) - (w22 - w13) };
+}
+
+async function setupVirada() {
+  const [geo, ufGeo, base, lookup] = await Promise.all([
     getJSON("geo/municipalities.geojson").then(fixWinding),
-    getJSON(`${DATA_DIR}/municipalities_2026.json`),
-    getJSON("data/municipalities_2022.json"),
+    getJSON("geo/states.geojson").then(fixWinding),
+    getJSON(VR_BASE.file),
     getJSON("data/municipality_lookup.json"),
   ]);
   // O geojson do IBGE usa código do IBGE (7 dígitos); os dados de votação
   // usam código do TSE (5 dígitos) — precisa do lookup pra converter.
   const ibgeToTse = {};
   for (const [tse, place] of Object.entries(lookup)) ibgeToTse[place.ibge] = tse;
+  for (const f of geo.features) f.tse = ibgeToTse[String(f.properties.codarea)];
 
   const root = document.getElementById("virada-map-root");
-  const w = root.clientWidth || 900, h = w * 0.78;
-  const projection = d3.geoMercator().fitSize([w, h], geo);
+  const w = root.clientWidth || 800;
+  const projection = d3.geoMercator().fitWidth(w, geo);
   const path = d3.geoPath(projection);
+  const h = Math.ceil(path.bounds(geo)[1][1]);
   const svg = d3.select(root).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("class", "map-svg");
-  const diverging = d3.scaleLinear().domain([-15, 0, 15]).range([C13, BASELINE, C22]).clamp(true);
+  svg.append("defs").append("pattern").attr("id", "apurando").attr("width", 5).attr("height", 5)
+    .attr("patternUnits", "userSpaceOnUse").attr("patternTransform", "rotate(45)")
+    .call(p => { p.append("rect").attr("width", 5).attr("height", 5).attr("fill", "#242423");
+                 p.append("line").attr("y2", 5).attr("stroke", "#3a3a38").attr("stroke-width", 2); });
+  const tooltip = document.createElement("div");
+  tooltip.className = "map-tooltip";
+  root.appendChild(tooltip);
 
-  svg.append("g").selectAll("path").data(geo.features).join("path")
-    .attr("class", "uf").attr("d", path)
-    .attr("fill", d => {
-      const code = ibgeToTse[String(d.properties.codarea)];
-      const now = code && atual.municipalities[code], was = code && base[code];
-      if (!now || !was || now.sections_total === 0) return "#232322";
-      if (now.sections_counted / now.sections_total < 0.9) return "#232322";
-      const nowValid = (now["13"] || 0) + (now["22"] || 0) || 1;
-      const wasValid = (was["13"] || 0) + (was["22"] || 0) || 1;
-      const swing = (100 * (now["22"] || 0) / nowValid) - (100 * (was["22"] || 0) / wasValid);
-      return diverging(swing);
-    });
+  const paths = svg.append("g").selectAll("path").data(geo.features).join("path")
+    .attr("class", "muni").attr("d", path)
+    .on("mousemove", (event, f) => {
+      tooltip.innerHTML = viradaTooltip(f.tse);
+      const [px, py] = d3.pointer(event, root);
+      const flip = px > root.clientWidth - 240;
+      tooltip.style.left = (flip ? px - 14 - tooltip.offsetWidth : px + 14) + "px";
+      tooltip.style.top = py + "px";
+      tooltip.style.opacity = 1;
+    })
+    .on("mouseleave", () => { tooltip.style.opacity = 0; });
+  svg.append("path").datum({ type: "FeatureCollection", features: ufGeo.features })
+    .attr("class", "uf-borders").attr("d", path);
+
+  vr = { paths, base, lookup, modo: "margem", calc: null };
+  document.querySelectorAll("#view-virada .segmented button").forEach(btn => btn.addEventListener("click", () => {
+    vr.modo = btn.dataset.modo;
+    document.querySelectorAll("#view-virada .segmented button").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+    paintVirada();
+  }));
+}
+
+function viradaTooltip(code) {
+  const place = vr.lookup[code];
+  if (!place) return `<div class="t-name">Sem dados</div>`;
+  const nome = `<div class="t-name">${escapeHtml(titleCase(place.name))} <span class="c">· ${place.uf}</span></div>`;
+  const l = vr.calc && vr.calc.porCodigo.get(code);
+  if (!l) return nome + `<div class="c">${vr.base[code] ? "Menos de 90% das seções apuradas" : "Não existia em 2022"}</div>`;
+  const lado = side => side === "22" ? `<span style="color:${C22}">PL</span>` : `<span style="color:${C13}">PT</span>`;
+  const swingSide = l.swing > 0 ? "22" : "13";
+  return nome + `<table>
+      <tr><th></th><th>Lula</th><th>Bolsonaro</th><th>Margem</th></tr>
+      <tr><td>${VR_BASE.label.replace(" de ", " ")}</td><td>${fmtPct(l.w13)}</td><td>${fmtPct(l.w22)}</td><td>${margemTxt(l.margemAntes, true)}</td></tr>
+      <tr><td>${VR_BASE.agora.replace(" de ", " ")}</td><td>${fmtPct(l.s13)}</td><td>${fmtPct(l.s22)}</td><td>${margemTxt(l.margem, true)}</td></tr>
+    </table>
+    <div class="t-swing">${Math.abs(l.swing) < 0.05 ? "Margem estável" : `${fmtPts(Math.abs(l.swing))} pts pro ${lado(swingSide)}`}${l.virou ? ` · virou pro ${lado(l.depois)}` : ""}</div>
+    <div class="c">${fmtInt(l.now.electorate)} eleitores</div>`;
+}
+
+function paintVirada() {
+  if (!vr || !vr.calc) return;
+  const { porCodigo } = vr.calc;
+  vr.paths.attr("fill", f => {
+    const l = porCodigo.get(f.tse);
+    if (!l) return vr.base[f.tse] ? "url(#apurando)" : "#1f1f1e";
+    if (vr.modo === "virou") return l.virou ? FLIP_COLORS[l.depois] : FLIP_COLORS.held;
+    return swingColor(l.swing);
+  });
+  const viradas = vr.calc.linhas.filter(l => l.virou);
+  const pro = side => viradas.filter(l => l.depois === side).length;
+  const sw = c => `<span class="swatch" style="background:${c}"></span>`;
+  const apurando = `<span class="key">${sw("url(#apurando)").replace("url(#apurando)", "repeating-linear-gradient(45deg,#242423 0 2px,#3a3a38 2px 4px)")}Apurando</span>`;
+  document.getElementById("vr-legend").innerHTML = vr.modo === "virou"
+    ? `<span class="key">${sw(FLIP_COLORS["22"])}Virou pro PL (${fmtInt(pro("22"))})</span>
+       <span class="key">${sw(FLIP_COLORS["13"])}Virou pro PT (${fmtInt(pro("13"))})</span>
+       <span class="key">${sw(FLIP_COLORS.held)}Não mudou</span>${apurando}`
+    : `<span class="key">Pro PT</span>
+       <span class="key" style="flex-direction:column;align-items:stretch;gap:2px">
+         <span class="legend-ramp">${SWING_COLORS.map(c => `<span style="background:${c}"></span>`).join("")}</span>
+       </span>
+       <span class="key">Pro PL</span>
+       <span class="key c">faixas: 3 · 10 · 20 pts</span>${apurando}`;
+}
+
+function renderUfBars(linhas) {
+  const porUf = d3.rollups(linhas, somaVirada, l => l.place.uf).sort((a, b) => b[1].swing - a[1].swing);
+  const el = document.getElementById("vr-ufs");
+  const w = el.clientWidth || 300, rowH = 17, m = { left: 28, right: 40 }, h = porUf.length * rowH + 4;
+  const max = d3.max(porUf, d => Math.abs(d[1].swing)) || 1;
+  const x = d3.scaleLinear().domain([-max, max]).range([m.left + 30, w - m.right]);
+  el.className = "uf-bars";
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Variação da margem por estado">
+    ${porUf.map(([uf, t], i) => {
+      const y = i * rowH + 2, x0 = x(0), x1 = x(t.swing);
+      const label = `${uf}: ${fmtPts(t.swing)} pts (margem ${margemTxt(t.margemAntes)} → ${margemTxt(t.margem)})`;
+      return `<g><title>${label}</title>
+        <text class="uf-name" x="0" y="${y + 11}">${uf}</text>
+        <rect x="${Math.min(x0, x1)}" y="${y + 3}" width="${Math.max(1, Math.abs(x1 - x0))}" height="${rowH - 6}" rx="2" fill="${swingColor(t.swing)}"/>
+        <text x="${t.swing >= 0 ? x1 + 4 : x1 - 4}" y="${y + 11}" text-anchor="${t.swing >= 0 ? "start" : "end"}">${fmtPts(t.swing)}</text></g>`;
+    }).join("")}
+    <line class="zero" x1="${x(0)}" x2="${x(0)}" y1="0" y2="${h}"/>
+  </svg>`;
+}
+
+function renderViradaListas(linhas) {
+  const grandes = (l) => `${escapeHtml(titleCase(l.place.name))} <span class="c">· ${l.place.uf}</span>`;
+  const linha = (l, lado) => `<div class="move-row">
+      <span class="nome">${grandes(l)}</span>
+      <span class="n" style="color:${lado === "22" ? C22 : C13}">${fmtMil(Math.abs(l.votosMargem))}</span>
+      <span class="s">${fmtPts(Math.abs(l.swing))} pts · margem ${margemTxt(l.margemAntes)} → ${margemTxt(l.margem)}</span>
+    </div>`;
+  const lista = (side) => {
+    const sel = linhas.filter(l => side === "22" ? l.votosMargem > 0 : l.votosMargem < 0)
+      .sort((a, b) => Math.abs(b.votosMargem) - Math.abs(a.votosMargem)).slice(0, 6);
+    return sel.length ? sel.map(l => linha(l, side)).join("") : `<p class="empty-msg-html">Nenhum município andou nessa direção.</p>`;
+  };
+  document.getElementById("vr-impacto").innerHTML =
+    `<div><h3 style="color:${C22}">Pro PL</h3>${lista("22")}</div><div><h3 style="color:${C13}">Pro PT</h3>${lista("13")}</div>`;
+
+  const viradas = linhas.filter(l => l.virou).sort((a, b) => (b.now.electorate || 0) - (a.now.electorate || 0)).slice(0, 8);
+  document.getElementById("vr-viradas").innerHTML = viradas.length
+    ? viradas.map(l => `<div class="move-row">
+        <span class="nome">${grandes(l)}</span>
+        <span class="n"><span class="flip-tag" style="background:${FLIP_COLORS[l.antes]}">${sideName(l.antes)}</span> → <span class="flip-tag" style="background:${FLIP_COLORS[l.depois]}">${sideName(l.depois)}</span></span>
+        <span class="s">${fmtInt(l.now.electorate)} eleitores · margem ${margemTxt(l.margemAntes)} → ${margemTxt(l.margem)}</span>
+      </div>`).join("")
+    : `<p class="empty-msg-html">Nenhum município apurado trocou de lado até agora.</p>`;
+}
+
+function renderViradaKpis(calc) {
+  const t = somaVirada(calc.linhas);
+  const viradas = calc.linhas.filter(l => l.virou);
+  const pro = side => viradas.filter(l => l.depois === side);
+  const eleitoradoViradas = d3.sum(viradas, l => l.now.electorate || 0);
+  const cor = v => v > 0 ? C22 : v < 0 ? C13 : "var(--ink)";
+  const ladoDe = v => v > 0 ? "PL" : "PT";
+  const kpi = (l, v, s, c) => `<div class="kpi"><div class="l">${l}</div><div class="v" style="color:${c}">${v}</div><div class="s">${s}</div></div>`;
+  document.getElementById("vr-kpis").innerHTML = calc.linhas.length ? [
+    kpi("Saldo da margem", `${fmtPts(Math.abs(t.swing))} pts pro ${ladoDe(t.swing)}`,
+      `margem ${margemTxt(t.margemAntes)} em 2022 → ${margemTxt(t.margem)} agora`, cor(t.swing)),
+    kpi("Lula", `${fmtPts(t.s13 - t.w13)} pts`, `${fmtPct(t.w13)} → ${fmtPct(t.s13)} dos válidos`, C13),
+    kpi("PL", `${fmtPts(t.s22 - t.w22)} pts`, `Jair ${fmtPct(t.w22)} → Flávio ${fmtPct(t.s22)}`, C22),
+    kpi("Municípios que viraram", fmtInt(viradas.length),
+      `${fmtInt(pro("22").length)} pro PL · ${fmtInt(pro("13").length)} pro PT · ${fmtMil(eleitoradoViradas)} de eleitores`, "var(--ink)"),
+  ].join("") : kpi("Virada desde 2022", "Aguardando", "O comparativo aparece quando os municípios passam de 90% apurado.", "var(--ink-muted)");
+
+  const total = calc.linhas.length + calc.aguardando;
+  document.getElementById("vr-dek").textContent =
+    `${VR_BASE.agora} × ${VR_BASE.label}, município a município. ` +
+    `${fmtInt(calc.linhas.length)} de ${fmtInt(total)} municípios já têm pelo menos 90% das seções apuradas.`;
+  document.getElementById("vr-nota").innerHTML =
+    `<b>Como ler.</b> Margem é a vantagem do PL sobre o PT em pontos percentuais dos votos válidos (positiva = PL na frente). ` +
+    `A variação compara cada município com ele mesmo no ${VR_BASE.label}; os totais nacionais e por estado usam só os municípios já comparáveis. ` +
+    `O nº 22 compara Flávio Bolsonaro (2026) com Jair Bolsonaro (2022), ambos do PL. ` +
+    `${DEMO ? "Na demonstração, a comparação é entre 1º turnos; no dia 25 será 2º turno de 2026 × 2º turno de 2022. " : ""}` +
+    `Boa Esperança do Norte (MT) não existia em 2022 e fica de fora.`;
+}
+
+async function renderVirada() {
+  try {
+    if (!vr) await (vrSetup ||= setupVirada());
+    const atual = await getJSON(`${DATA_DIR}/municipalities_2026.json`);
+    vr.calc = computeVirada(atual);
+    paintVirada();
+    renderViradaKpis(vr.calc);
+    renderUfBars(vr.calc.linhas);
+    renderViradaListas(vr.calc.linhas);
+  } catch (err) { console.error(err); }
 }
 
 // ---------------- tabs ----------------
@@ -730,6 +1005,7 @@ async function refresh() {
     } catch { renderChart(null); }
 
     if (exteriorMap) refreshExterior();
+    if (vr) renderVirada();
   } catch (err) {
     document.getElementById("live-text").textContent = "sem dados ainda";
     console.error(err);

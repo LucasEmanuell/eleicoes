@@ -130,31 +130,36 @@ def build_municipality_lookup() -> None:
 
 
 def build_2022_baseline() -> None:
+    """Votos de 2022 por município, um arquivo por turno, pra aba de virada:
+    municipalities_2022.json (1º turno) e municipalities_2022_t2.json (2º turno).
+    O 2º turno de 2026 é comparado com o 2º de 2022 — com o 1º, os dois
+    candidatos pareceriam crescer só porque os votos de terceiros sumiram."""
     votes = read_presidential_csv_2022(
         "votacao_candidato_munzona",
         ["NR_TURNO", "CD_MUNICIPIO", "NR_CANDIDATO", "QT_VOTOS_NOMINAIS_VALIDOS"],
     )
-    first_round = votes[votes.NR_TURNO == 1]
-    by_municipality = (
-        first_round.groupby(["CD_MUNICIPIO", "NR_CANDIDATO"])
-        .QT_VOTOS_NOMINAIS_VALIDOS.sum()
-        .unstack(fill_value=0)
-    )
-    national_valid = int(by_municipality.to_numpy().sum())
-    for number in (13, 22):
-        share = by_municipality[number].sum() / national_valid * 100
-        logger.info(
-            "2022, 1º turno, candidato %d: %.2f%% dos votos válidos", number, share
+    for turn, filename in ((1, "municipalities_2022.json"), (2, "municipalities_2022_t2.json")):
+        by_municipality = (
+            votes[votes.NR_TURNO == turn]
+            .groupby(["CD_MUNICIPIO", "NR_CANDIDATO"])
+            .QT_VOTOS_NOMINAIS_VALIDOS.sum()
+            .unstack(fill_value=0)
         )
-    baseline = {
-        f"{code:05d}": {
-            "valid": int(row.sum()),
-            "13": int(row[13]),
-            "22": int(row[22]),
+        national_valid = int(by_municipality.to_numpy().sum())
+        for number in (13, 22):
+            share = by_municipality[number].sum() / national_valid * 100
+            logger.info(
+                "2022, %dº turno, candidato %d: %.2f%% dos votos válidos", turn, number, share
+            )
+        baseline = {
+            f"{code:05d}": {
+                "valid": int(row.sum()),
+                "13": int(row[13]),
+                "22": int(row[22]),
+            }
+            for code, row in by_municipality.iterrows()
         }
-        for code, row in by_municipality.iterrows()
-    }
-    write_json(DATA / "municipalities_2022.json", baseline)
+        write_json(DATA / filename, baseline)
 
 
 if __name__ == "__main__":
