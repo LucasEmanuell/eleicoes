@@ -379,7 +379,7 @@ function paintMap() {
 function marginLegendHtml() {
   const chip = step =>
     `<span class="swatch" style="background:linear-gradient(90deg, ${SHADES["13"][step]} 50%, ${SHADES["22"][step]} 50%)"></span>`;
-  return `<span class="key">Vantagem</span>
+  return `<span class="key">Diferença</span>
      <span class="key">${chip(0)}até 5 pts</span>
      <span class="key">${chip(1)}5–15 pts</span>
      <span class="key">${chip(2)}mais de 15 pts</span>`;
