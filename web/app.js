@@ -178,7 +178,9 @@ function renderRegioes(states) {
     const lula = t["13"] >= t["22"];
     return `<div class="regiao-row${extra}">
       <span class="nome">${nome}</span>
-      <span class="lider"><span class="swatch" style="background:${lula ? C13 : C22}"></span>${lula ? "Lula" : "Flávio"}</span>
+      ${t.valid
+        ? `<span class="lider"><span class="swatch" style="background:${lula ? C13 : C22}"></span>${lula ? "Lula" : "Flávio"}</span>`
+        : `<span class="lider" style="color:var(--ink-muted);font-weight:400">sem votos</span>`}
       <span class="pct">${t.valid ? fmtPct(lula ? p13 : p22) : "—"}</span>
       <div class="mini-track"><i style="background:${C13};width:${p13}%"></i><i style="background:${C22};width:${p22}%;margin-left:auto"></i></div>
     </div>`;
