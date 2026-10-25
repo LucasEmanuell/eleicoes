@@ -13,7 +13,11 @@ git pull -q --rebase --autostash origin main || echo "aviso: git pull falhou, se
 echo "$(date '+%d/%m %H:%M:%S') coleta por ${HORAS}h"
 timeout "${HORAS}h" "$PY" fetch_live.py &
 COLETOR=$!
+# Ctrl+C: o timeout põe cada filho num grupo próprio, então o sinal não chega
+# neles sozinho; repassa a mão.
+trap 'kill "$COLETOR" ${PUBLICADOR:-} 2>/dev/null; echo "interrompido"; exit 130' INT TERM
 sleep 15  # dá tempo do 1º ciclo (estados + exterior) gravar antes da 1ª publicação
-timeout "${HORAS}h" ./publish_loop.sh
-wait "$COLETOR"
+timeout "${HORAS}h" ./publish_loop.sh &
+PUBLICADOR=$!
+wait
 echo "$(date '+%d/%m %H:%M:%S') fim"
