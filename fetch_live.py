@@ -137,7 +137,7 @@ def parse_unified_result(payload: dict) -> dict:
         "null": int(payload["v"]["tvn"]),
         # No 2º turno o TSE não manda "md" (usado no 1º turno pra vitória sem 2º
         # turno); o eleito aparece no "st" de cada candidato.
-        "decided": any(candidate["st"] == "Eleito" for candidate in candidates),
+        "decided": any(candidate["status"] == "Eleito" for candidate in candidates),
         "candidates": candidates,
     }
 
