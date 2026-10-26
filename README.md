@@ -4,7 +4,7 @@ Painel não-oficial da eleição presidencial de 2026, com dados do TSE.
 
 Site: https://lucasemanuell.github.io/eleicoes/
 
-Até o 2º turno ter os primeiros votos (25/10, a partir das 17h), o site mostra o resultado do 1º turno e troca sozinho para o modo ao vivo. A demonstração com os dados do 1º turno fica em [`?demo`](https://lucasemanuell.github.io/eleicoes/?demo).
+**Resultado final** (25/10, 100% das seções apuradas): **Lula (PT) eleito** com 51,79% dos votos válidos (64.256.232 votos), contra 48,21% de Flávio Bolsonaro (PL) (59.826.041 votos).
 
 ## Abas
 
@@ -31,6 +31,7 @@ pip install -r requirements.txt
 python3 prepare.py   # uma vez: mapas do IBGE, lookup de municípios, bases de 2022
 
 # dados de demonstração (coleta do 1º turno; --historico-git reconstrói a curva real da noite)
+# útil pra testar o front-end sem esperar uma eleição ao vivo
 git clone https://github.com/lsampaiorocha/brazil-votes-2026 ../brazil-votes-2026
 python3 build_demo.py ../brazil-votes-2026/web/data --historico-git ../brazil-votes-2026
 
@@ -39,12 +40,14 @@ cd web && python3 -m http.server 8000   # http://localhost:8000/?demo
 python3 -m pytest tests/                 # testes do coletor
 ```
 
-## Coleta no dia 25
+## Coleta no dia da eleição
 
 `./rodar_coleta.sh [horas]` roda o coletor e a publicação por N horas (padrão 8) e encerra. O TSE é consultado a cada 30 segundos e os dados são publicados assim que mudam; cada push dispara o deploy do Pages (`.github/workflows/pages.yml`). Rode **em um lugar só por vez**:
 
-1. **Seu computador (principal)**: por volta das 16h30, `./rodar_coleta.sh`. Deixe na tomada, com suspensão automática desligada.
+1. **Seu computador (principal)**: `./rodar_coleta.sh`, a partir de pouco antes do fechamento das urnas. Deixe na tomada, com suspensão automática desligada.
 2. **GitHub Actions (reserva)**: Actions → Coleta do TSE → Run workflow. Dura no máximo 6 horas e pode ser disparado pelo celular.
+
+Foi assim que a coleta do 2º turno rodou em 25/10: coletor no computador principal, do fechamento das urnas (17h) até a apuração fechar 100% das seções por volta de 23h30.
 
 ## Licença
 
